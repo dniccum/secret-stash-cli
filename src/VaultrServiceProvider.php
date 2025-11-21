@@ -2,9 +2,9 @@
 
 namespace Dniccum\Vaultr;
 
+use Dniccum\Vaultr\Commands\VaultrCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Dniccum\Vaultr\Commands\VaultrCommand;
 
 class VaultrServiceProvider extends PackageServiceProvider
 {

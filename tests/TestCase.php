@@ -2,9 +2,9 @@
 
 namespace Dniccum\Vaultr\Tests;
 
+use Dniccum\Vaultr\VaultrServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Dniccum\Vaultr\VaultrServiceProvider;
 
 class TestCase extends Orchestra
 {
