@@ -1,10 +1,10 @@
 <?php
 
-namespace Doug Niccum Design, LLC\VaultrCli\Tests;
+namespace Dniccum\Vaultr\Tests;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Doug Niccum Design, LLC\VaultrCli\VaultrCliServiceProvider;
+use Dniccum\Vaultr\VaultrServiceProvider;
 
 class TestCase extends Orchestra
 {
@@ -13,7 +13,7 @@ class TestCase extends Orchestra
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Doug Niccum Design, LLC\\Vaultr\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName) => 'Dniccum\\Vaultr\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
     }
 
