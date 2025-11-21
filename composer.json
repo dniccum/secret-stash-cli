@@ -1,24 +1,31 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "dniccum/vaultr-cli",
+    "description": "A PHP-based Composer package to interact with the Vaultr environment variable service.",
     "keywords": [
-        ":vendor_name",
+        "Doug Niccum Design, LLC",
+        "dniccum",
+        "environment",
+        "variables",
         "laravel",
-        ":package_slug"
+        "vaultr-cli"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/dniccum/vaultr-cli",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
-            "role": "Developer"
+            "name": "Doug Niccum",
+            "email": "doug@dniccumdesign.com",
+            "role": "Owner"
         }
     ],
     "require": {
         "php": "^8.4",
-        "spatie/laravel-package-tools": "^1.16",
-        "illuminate/contracts": "^11.0||^12.0"
+        "guzzlehttp/guzzle": "^7.10",
+        "illuminate/console": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/contracts": "^11.0||^12.0",
+        "laravel/prompts": "^0.3.7",
+        "spatie/laravel-package-tools": "^1.16"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
@@ -35,13 +42,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Dniccum\\Vaultr\\": "src/",
+            "Dniccum\\Vaultr\\Database\\Factories\\": "database/factories/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "Dniccum\\Vaultr\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,10 +70,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Dniccum\\Vaultr\\VaultrServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "Vaultr": "Dniccum\\Vaultr\\Facades\\Vaultr"
             }
         }
     },

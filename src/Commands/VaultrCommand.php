@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Dniccum\Vaultr\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class VaultrCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'vaultr-cli';
 
     public $description = 'My command';
 
