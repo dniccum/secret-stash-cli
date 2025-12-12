@@ -5,7 +5,8 @@ namespace Dniccum\Vaultr;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
-class Vaultr {
+class Vaultr
+{
     protected Client $client;
 
     protected string $apiUrl;
@@ -248,7 +249,7 @@ class Vaultr {
             $lines[] = '';
         }
 
-        $result = file_put_contents($envPath, implode(PHP_EOL, $lines) . PHP_EOL, LOCK_EX);
+        $result = file_put_contents($envPath, implode(PHP_EOL, $lines).PHP_EOL, LOCK_EX);
         if ($result === false) {
             throw new \RuntimeException("Unable to write updated .env file at {$envPath}");
         }
@@ -277,13 +278,14 @@ class Vaultr {
         }
 
         $cwd = getcwd() ?: __DIR__;
-        return rtrim($cwd, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.env';
+
+        return rtrim($cwd, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'.env';
     }
 
     /**
      * Normalize a variety of input variable payloads into a simple [key => value] array.
      *
-     * @param array $variables Various shapes; see syncEnvFromVariables() docs.
+     * @param  array  $variables  Various shapes; see syncEnvFromVariables() docs.
      * @return array<string,string>
      */
     protected function normalizeVariables(array $variables): array
@@ -296,8 +298,11 @@ class Vaultr {
         // Associative map case: all keys are strings and values are scalars
         $isAssoc = static function (array $arr): bool {
             foreach (array_keys($arr) as $k) {
-                if (! is_int($k)) return true;
+                if (! is_int($k)) {
+                    return true;
+                }
             }
+
             return false;
         };
 
@@ -311,6 +316,7 @@ class Vaultr {
                     }
                 }
             }
+
             return $kv;
         }
 
@@ -369,7 +375,8 @@ class Vaultr {
 
         if ($needsQuotes) {
             // Escape existing double quotes and backslashes
-            $escaped = str_replace(["\\", '"'], ["\\\\", '\\"'], $value);
+            $escaped = str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
+
             return $key.'="'.$escaped.'"';
         }
 
