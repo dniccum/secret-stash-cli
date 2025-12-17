@@ -22,7 +22,7 @@ class VaultrServiceProvider extends PackageServiceProvider
             ->hasConfigFile('vaultr')
             ->hasCommands([
                 VaultrEnvironmentsCommand::class,
-//                VaultrKeysCommand::class,
+                //                VaultrKeysCommand::class,
                 VaultrVariablesCommand::class,
             ]);
     }
