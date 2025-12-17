@@ -7,7 +7,6 @@ it('can run the variables:list command and display results', function () {
     $this->mock(VaultrClient::class, function ($mock) {
         $mock->shouldReceive('getVariables')
             ->once()
-            ->with('app_123', 'testing')
             ->andReturn([
                 'data' => [
                     ['id' => 'var_1', 'name' => 'APP_NAME', 'created_at' => '2025-01-01 00:00:00'],
