@@ -5,7 +5,7 @@ namespace Dniccum\Vaultr;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
-class Vaultr
+class VaultrClient
 {
     protected Client $client;
 
@@ -16,7 +16,7 @@ class Vaultr
     public function __construct(string $apiUrl, ?string $apiToken = null)
     {
         $this->apiUrl = rtrim($apiUrl, '/');
-        $this->apiToken = $apiToken;
+        $this->apiToken = $apiToken ?? config('vaultr.api_token');
 
         $this->client = new Client([
             'base_uri' => $this->apiUrl.'/api/',
@@ -160,9 +160,9 @@ class Vaultr
     /**
      * Get environments for an application.
      */
-    public function getEnvironments(string $organizationId, string $applicationId): array
+    public function getEnvironments(string $applicationId): array
     {
-        return $this->get("organizations/{$organizationId}/applications/{$applicationId}/environments");
+        return $this->get("/applications/{$applicationId}/environments");
     }
 
     /**
@@ -179,9 +179,9 @@ class Vaultr
     /**
      * Get variables for an environment.
      */
-    public function getVariables(string $organizationId, string $applicationId, string $environmentId): array
+    public function getVariables(string $applicationId, string $environmentSlug): array
     {
-        return $this->get("organizations/{$organizationId}/applications/{$applicationId}/environments/{$environmentId}/variables");
+        return $this->get("/applications/{$applicationId}/environments/{$environmentSlug}");
     }
 
     /**
