@@ -3,7 +3,6 @@
 namespace Dniccum\Vaultr\Commands;
 
 use Dniccum\Vaultr\Crypto\CryptoHelper;
-use Illuminate\Console\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
