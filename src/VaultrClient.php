@@ -2,6 +2,7 @@
 
 namespace Dniccum\Vaultr;
 
+use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
@@ -13,10 +14,16 @@ class VaultrClient
 
     protected ?string $apiToken;
 
-    public function __construct(string $apiUrl, ?string $apiToken = null)
+    /**
+     * @throws \Throwable
+     */
+    public function __construct(?string $apiUrl = null, ?string $apiToken = null)
     {
-        $this->apiUrl = rtrim($apiUrl, '/');
+        $this->apiUrl = $apiUrl ? rtrim($apiUrl, '/') : config('vaultr.api_url');
         $this->apiToken = $apiToken ?? config('vaultr.api_token');
+
+        throw_if(empty($this->apiUrl), new InvalidEnvironmentConfiguration('API url is not configured. Please set VAULTR_API_URL in your .env file.'));
+        throw_if(empty($this->apiToken), new InvalidEnvironmentConfiguration('API token is not configured. Please set VAULTR_API_TOKEN in your .env file.'));
 
         $this->client = new Client([
             'base_uri' => $this->apiUrl.'/api/',
