@@ -4,7 +4,6 @@ namespace Dniccum\Vaultr\Commands;
 
 use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\Vaultr\VaultrClient;
-use Illuminate\Console\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -22,7 +21,7 @@ class VaultrEnvironmentsCommand extends BasicCommand
                             {--type= : Environment type for create action (local, development, production)}';
 
     protected $aliases = [
-        'vaultr:env'
+        'vaultr:env',
     ];
 
     protected $description = 'Manage Vaultr environments';

@@ -10,7 +10,7 @@ class InvalidVariablesCommand extends \InvalidArgumentException
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function __toString(): string
     {

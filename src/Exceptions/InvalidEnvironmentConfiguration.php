@@ -6,11 +6,11 @@ class InvalidEnvironmentConfiguration extends \Exception
 {
     public function __construct(?string $message = null)
     {
-       parent::__construct($message ?? 'Your environment is not configured correctly. Please check your .env file.');
+        parent::__construct($message ?? 'Your environment is not configured correctly. Please check your .env file.');
     }
 
     /**
-     * @inheritDoc
+     * {@inheritDoc}
      */
     public function __toString()
     {

@@ -4,6 +4,7 @@ namespace Dniccum\Vaultr\Commands;
 
 use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use Illuminate\Console\Command;
+
 use function Laravel\Prompts\text;
 
 abstract class BasicCommand extends Command
