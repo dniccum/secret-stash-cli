@@ -1,8 +1,8 @@
 <?php
 
-namespace Dniccum\VaultrCli\Commands;
+namespace Dniccum\Vaultr\Commands;
 
-use Dniccum\VaultrCli\Crypto\CryptoHelper;
+use Dniccum\Vaultr\Crypto\CryptoHelper;
 use Illuminate\Console\Command;
 
 use function Laravel\Prompts\error;
@@ -11,7 +11,7 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
-class VaultrKeysCommand extends Command
+class VaultrKeysCommand extends BasicCommand
 {
     protected $signature = 'vaultr:keys
                             {action? : The action to perform (list, set, generate)}
