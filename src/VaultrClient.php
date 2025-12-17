@@ -175,10 +175,11 @@ class VaultrClient
     /**
      * Create a new environment.
      */
-    public function createEnvironment(string $organizationId, string $applicationId, string $name, string $type): array
+    public function createEnvironment(string $applicationId, string $name, string $slug, string $type): array
     {
-        return $this->post("organizations/{$organizationId}/applications/{$applicationId}/environments", [
+        return $this->post("/applications/{$applicationId}/environments", [
             'name' => $name,
+            'slug' => $slug,
             'type' => $type,
         ]);
     }
