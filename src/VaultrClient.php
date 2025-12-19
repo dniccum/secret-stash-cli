@@ -394,9 +394,9 @@ class VaultrClient
     /**
      * Create a new variable.
      */
-    public function createVariable(string $organizationId, string $applicationId, string $environmentId, string $name, array $payload): array
+    public function createVariable(string $applicationId, string $environmentId, string $name, array $payload): array
     {
-        return $this->post("organizations/{$organizationId}/applications/{$applicationId}/environments/{$environmentId}/variables", [
+        return $this->post("/applications/{$applicationId}/environments/{$environmentId}/variables", [
             'name' => $name,
             'payload' => $payload,
         ]);

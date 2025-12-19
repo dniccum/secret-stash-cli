@@ -2,6 +2,7 @@
 
 namespace Dniccum\Vaultr\Commands;
 
+use Dniccum\Vaultr\Crypto\CryptoHelper;
 use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\Vaultr\VaultrClient;
 
@@ -10,15 +11,14 @@ use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
+use function Laravel\Prompts\text;
 
 class VaultrVariablesCommand extends BasicCommand
 {
     protected $signature = 'vaultr:variables
-                            {action? : The action to perform (list, create, update, delete, pull, push)}
+                            {action? : The action to perform (list, pull, push)}
                             {--application= : Application ID}
                             {--environment= : Environment ID}
-                            {--name= : Variable name}
-                            {--value= : Variable value}
                             {--file= : .env file path for pull/push actions}';
 
     protected $description = 'Manage Vaultr environment variables';
@@ -79,15 +79,14 @@ class VaultrVariablesCommand extends BasicCommand
 
     protected function pullVariables(VaultrClient $client): void
     {
-        $organizationId = $this->getOrganizationId($client);
-        $applicationId = $this->getApplicationId($client, $organizationId);
-        $environmentId = $this->getEnvironmentId($client, $organizationId, $applicationId);
-
         $filePath = $this->option('file') ?? '.env';
 
         info('Fetching variables from Vaultr...');
 
-        $response = $client->getVariables($organizationId, $applicationId, $environmentId);
+        $applicationId = $this->applicationId;
+        $environmentId = $this->environmentSlug;
+
+        $response = $client->getVariables($applicationId, $environmentId);
         $variables = $response['data'] ?? [];
 
         if (empty($variables)) {
@@ -96,12 +95,7 @@ class VaultrVariablesCommand extends BasicCommand
             return;
         }
 
-        $content = '';
-        foreach ($variables as $var) {
-            $content .= $var['name'].'='.$var['value']."\n";
-        }
-
-        file_put_contents($filePath, $content);
+        $client->syncEnvFromVariables($variables, $filePath);
 
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Variables pulled successfully!');
@@ -112,10 +106,6 @@ class VaultrVariablesCommand extends BasicCommand
 
     protected function pushVariables(VaultrClient $client): void
     {
-        $organizationId = $this->getOrganizationId($client);
-        $applicationId = $this->getApplicationId($client, $organizationId);
-        $environmentId = $this->getEnvironmentId($client, $organizationId, $applicationId);
-
         $filePath = $this->option('file') ?? '.env';
 
         if (! file_exists($filePath)) {
@@ -163,10 +153,10 @@ class VaultrVariablesCommand extends BasicCommand
         $failed = 0;
 
         spin(
-            callback: function () use ($client, $organizationId, $applicationId, $environmentId, $variables, &$created, &$failed) {
+            callback: function () use ($client, $variables, &$created, &$failed) {
                 foreach ($variables as $name => $value) {
                     try {
-                        $client->createVariable($organizationId, $applicationId, $environmentId, $name, $value);
+                        $client->createVariable($this->applicationId, $this->environmentSlug, $name, $value);
                         $created++;
                     } catch (\Exception $e) {
                         $failed++;
@@ -183,5 +173,27 @@ class VaultrVariablesCommand extends BasicCommand
             $this->line('<fg=red>Failed:</> '.$failed.' (may already exist)');
         }
         $this->newLine();
+    }
+
+    protected function getEnvironmentKey(string $environmentSlug): string
+    {
+        $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
+        $keysFile = $homeDir.'/.vaultr/keys.json';
+
+        $encodedKey = null;
+        if (file_exists($keysFile)) {
+            $keys = json_decode(file_get_contents($keysFile), true);
+            $encodedKey = $keys[$environmentSlug] ?? null;
+        }
+
+        if (! $encodedKey) {
+            // TODO get `APP_ENV` from `.env` file
+            $encodedKey = text(
+                label: "No key found for environment {$environmentSlug}. Please enter the base64url-encoded 32-byte key",
+                required: true
+            );
+        }
+
+        return CryptoHelper::base64urlDecode($encodedKey);
     }
 }
