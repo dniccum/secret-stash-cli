@@ -27,10 +27,10 @@ class VaultrClient
 
         $this->client = new Client([
             'base_uri' => $this->apiUrl.'/api/',
-            'headers' => [
+            'headers' => array_merge($this->getAuthHeaders(), [
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
-            ],
+            ]),
             'timeout' => 30,
         ]);
     }
@@ -42,7 +42,6 @@ class VaultrClient
     {
         try {
             $response = $this->client->get($endpoint, [
-                'headers' => $this->getAuthHeaders(),
                 'query' => $query,
             ]);
 
@@ -59,7 +58,6 @@ class VaultrClient
     {
         try {
             $response = $this->client->post($endpoint, [
-                'headers' => $this->getAuthHeaders(),
                 'json' => $data,
             ]);
 
@@ -76,7 +74,6 @@ class VaultrClient
     {
         try {
             $response = $this->client->patch($endpoint, [
-                'headers' => $this->getAuthHeaders(),
                 'json' => $data,
             ]);
 
@@ -92,9 +89,7 @@ class VaultrClient
     public function delete(string $endpoint): array
     {
         try {
-            $response = $this->client->delete($endpoint, [
-                'headers' => $this->getAuthHeaders(),
-            ]);
+            $response = $this->client->delete($endpoint);
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
@@ -169,7 +164,7 @@ class VaultrClient
      */
     public function getEnvironments(string $applicationId): array
     {
-        return $this->get("/applications/{$applicationId}/environments");
+        return $this->get("applications/{$applicationId}/environments");
     }
 
     /**
@@ -177,7 +172,7 @@ class VaultrClient
      */
     public function createEnvironment(string $applicationId, string $name, string $slug, string $type): array
     {
-        return $this->post("/applications/{$applicationId}/environments", [
+        return $this->post("applications/{$applicationId}/environments", [
             'name' => $name,
             'slug' => $slug,
             'type' => $type,
@@ -189,7 +184,7 @@ class VaultrClient
      */
     public function getVariables(string $applicationId, string $environmentSlug): array
     {
-        return $this->get("/applications/{$applicationId}/environments/{$environmentSlug}");
+        return $this->get("applications/{$applicationId}/environments/{$environmentSlug}");
     }
 
     /**
@@ -396,7 +391,7 @@ class VaultrClient
      */
     public function createVariable(string $applicationId, string $environmentId, string $name, array $payload): array
     {
-        return $this->post("/applications/{$applicationId}/environments/{$environmentId}/variables", [
+        return $this->post("applications/{$applicationId}/environments/{$environmentId}/variables", [
             'name' => $name,
             'payload' => $payload,
         ]);
