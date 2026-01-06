@@ -158,7 +158,7 @@ class VaultrVariablesCommand extends BasicCommand
             $this->createEnvironment();
         } else {
             $slugList = array_map(fn ($env) => $env['slug'], $environments['data']);
-            if (!in_array($this->environmentSlug, $slugList, true)) {
+            if (! in_array($this->environmentSlug, $slugList, true)) {
                 $this->createEnvironment();
             }
         }
@@ -225,7 +225,7 @@ class VaultrVariablesCommand extends BasicCommand
         $this->call('vaultr:environments', [
             'action' => 'create',
             '--name' => str($this->environmentSlug)->title()->toString(),
-            '--slug' => $this->environmentSlug
+            '--slug' => $this->environmentSlug,
         ]);
         info('Environment successfully created. Continuing with push...');
     }
