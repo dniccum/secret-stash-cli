@@ -33,7 +33,7 @@ class TestCase extends Orchestra
         $app['config']->set('vaultr', require __DIR__.'/../config/vaultr.php');
 
         // Provide a default application id so commands don't prompt
-        $app['config']->set('vaultr.default_application_id', 'app_123');
+        $app['config']->set('vaultr.application_id', 'app_123');
 
         // Typical framework config used by console testing
         $app['config']->set('app.env', 'testing');
