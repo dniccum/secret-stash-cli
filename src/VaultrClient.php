@@ -48,7 +48,7 @@ class VaultrClient
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage());
+            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -65,7 +65,7 @@ class VaultrClient
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage());
+            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -82,7 +82,7 @@ class VaultrClient
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage());
+            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -98,7 +98,7 @@ class VaultrClient
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage());
+            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
         }
     }
 
