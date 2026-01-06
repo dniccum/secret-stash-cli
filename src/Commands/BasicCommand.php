@@ -18,7 +18,7 @@ abstract class BasicCommand extends Command
      */
     protected function setEnvironment(): void
     {
-        $this->applicationId = $this->hasOption('application') && $this->option('application') ? $this->option('application') : config('vaultr.default_application_id', '');
+        $this->applicationId = $this->hasOption('application') && $this->option('application') ? $this->option('application') : config('vaultr.application_id', '');
         $this->environmentSlug = $this->hasOption('environment') && $this->option('environment') ? $this->option('environment') : config('app.env');
 
         throw_if(empty($this->applicationId), new InvalidEnvironmentConfiguration('An application ID must be provided.'));
