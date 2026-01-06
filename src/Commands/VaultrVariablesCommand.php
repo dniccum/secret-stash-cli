@@ -167,7 +167,7 @@ class VaultrVariablesCommand extends BasicCommand
             callback: function () use ($client, $variables, &$created, &$failed, $key) {
                 foreach ($variables as $name => $value) {
                     try {
-                        $payload = CryptoHelper::aesGcmEncrypt($value, $key);
+                        $payload = CryptoHelper::aesGcmEncrypt($value ?? '', $key);
                         $client->createVariable($this->applicationId, $this->environmentSlug, $name, $payload);
                         $created++;
                     } catch (\Exception $e) {
@@ -181,7 +181,7 @@ class VaultrVariablesCommand extends BasicCommand
 
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Push completed!');
-        $this->line('<fg=yellow>Created:</> '.$created);
+        $this->line('<fg=yellow>Created or Updated:</> '.$created);
         if ($failed > 0) {
             $this->line('<fg=red>Failed:</> '.$failed.' (may already exist)');
         }
