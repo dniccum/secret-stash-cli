@@ -139,7 +139,7 @@ class VaultrVariablesCommand extends BasicCommand
         }
 
         $confirmed = confirm(
-            label: 'Push '.count($variables).' variable(s) to Vaultr?',
+            label: 'Push '.count($variables).' variable(s) to your Vaultr application?',
             default: true
         );
 
@@ -151,14 +151,31 @@ class VaultrVariablesCommand extends BasicCommand
 
         $created = 0;
         $failed = 0;
+        $key = $this->getEnvironmentKey($this->environmentSlug);
+
+        $environments = $client->getEnvironments($this->applicationId);
+        if (count($environments['data']) === 0) {
+            $this->createEnvironment();
+        } else {
+            $slugList = array_map(fn ($env) => $env['slug'], $environments['data']);
+            if (! in_array($this->environmentSlug, $slugList, true)) {
+                $this->createEnvironment();
+            }
+        }
 
         spin(
-            callback: function () use ($client, $variables, &$created, &$failed) {
+            callback: function () use ($client, $variables, &$created, &$failed, $key) {
                 foreach ($variables as $name => $value) {
                     try {
-                        $client->createVariable($this->applicationId, $this->environmentSlug, $name, $value);
+                        if ($value && $value !== '') {
+                            $payload = CryptoHelper::aesGcmEncrypt($value, $key);
+                        } else {
+                            $payload = null;
+                        }
+                        $client->createVariable($this->applicationId, $this->environmentSlug, $name, $payload);
                         $created++;
                     } catch (\Exception $e) {
+                        logger()->debug($e->getMessage(), ['environment' => $this->environmentSlug, 'variable' => $name]);
                         $failed++;
                     }
                 }
@@ -168,7 +185,7 @@ class VaultrVariablesCommand extends BasicCommand
 
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Push completed!');
-        $this->line('<fg=yellow>Created:</> '.$created);
+        $this->line('<fg=yellow>Created or Updated:</> '.$created);
         if ($failed > 0) {
             $this->line('<fg=red>Failed:</> '.$failed.' (may already exist)');
         }
@@ -189,11 +206,31 @@ class VaultrVariablesCommand extends BasicCommand
         if (! $encodedKey) {
             // TODO get `APP_ENV` from `.env` file
             $encodedKey = text(
-                label: "No key found for environment {$environmentSlug}. Please enter the base64url-encoded 32-byte key",
+                label: "No key found for environment {$environmentSlug}. Let's generate one now.",
                 required: true
             );
+            \Artisan::call('vaultr:keys generate', ['--environment' => $environmentSlug]);
         }
 
         return CryptoHelper::base64urlDecode($encodedKey);
+    }
+
+    protected function createEnvironment(): void
+    {
+        $confirmCreate = confirm(
+            label: 'This environment does not exist. Would you like to create this environment now?',
+            default: true
+        );
+        if (! $confirmCreate) {
+            info('Push cancelled.');
+
+            return;
+        }
+        $this->call('vaultr:environments', [
+            'action' => 'create',
+            '--name' => str($this->environmentSlug)->title()->toString(),
+            '--slug' => $this->environmentSlug,
+        ]);
+        info('Environment successfully created. Continuing with push...');
     }
 }
