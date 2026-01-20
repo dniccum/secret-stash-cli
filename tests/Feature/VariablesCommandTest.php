@@ -112,3 +112,31 @@ it('correctly decrypts values during pull if key is provided', function () {
 
     unlink($tempEnv);
 });
+
+it('does not write null values to .env when pulling', function () {
+    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    File::put($tempEnv, "EXISTING_VAR=some_value");
+
+    $this->mock(VaultrClient::class, function ($mock) {
+        $mock->makePartial();
+        $mock->shouldReceive('getVariables')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    ['name' => 'NULL_VAR', 'value' => null],
+                    ['name' => 'OTHER_VAR', 'value' => 'fine'],
+                ],
+            ]);
+    });
+
+    $this->artisan("vaultr:variables pull --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsOutputToContain('Variables pulled successfully!')
+        ->assertSuccessful();
+
+    $content = File::get($tempEnv);
+    expect($content)->not->toContain('NULL_VAR')
+        ->toContain('OTHER_VAR=fine')
+        ->toContain('EXISTING_VAR=some_value');
+
+    unlink($tempEnv);
+});

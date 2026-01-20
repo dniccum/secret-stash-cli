@@ -183,12 +183,10 @@ class VaultrVariablesCommand extends BasicCommand
                 foreach ($variables as $name => $value) {
                     $payload = null;
                     try {
-                        if ($value && $value !== '') {
+                        if ($value !== null && $value !== '') {
                             $payload = CryptoHelper::aesGcmEncrypt($value, $key);
                         }
-                        if ($value === null) {
-                            // TODO Add "null" placeholder so the value is not null and then be sent to the api.
-                            // TODO add logic to handle null values
+                        if ($value === null || $value === '') {
                             $payload = CryptoHelper::aesGcmEncrypt('null', $key);
                         }
 

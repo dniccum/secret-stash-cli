@@ -323,8 +323,8 @@ class VaultrClient
             // Filter out non-scalar values; cast to string
             foreach ($variables as $k => $v) {
                 if (is_string($k)) {
-                    if (is_scalar($v) || $v === null) {
-                        $kv[$k] = $v === null ? '' : (string) $v;
+                    if (is_scalar($v)) {
+                        $kv[$k] = (string) $v;
                     }
                 }
             }
@@ -380,11 +380,11 @@ class VaultrClient
             }
 
             if ($value === null) {
-                // Skip if value cannot be determined
+                // Skip if value cannot be determined or is null
                 continue;
             }
 
-            $kv[$name] = $value === null ? '' : (string) $value;
+            $kv[$name] = (string) $value;
         }
 
         return $kv;
