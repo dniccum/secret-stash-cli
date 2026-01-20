@@ -395,9 +395,16 @@ class VaultrClient
      */
     protected function formatEnvAssignment(string $key, string $value): string
     {
-        // Determine if we need quoting: empty, contains any whitespace, or special characters
+        // If the value is already wrapped in double quotes, we strip them first
+        // so we can re-evaluate if it needs quoting and avoid double-encoding.
+        if (str_starts_with($value, '"') && str_ends_with($value, '"')) {
+            $value = substr($value, 1, -1);
+        }
+
+        // Determine if we need quoting: empty, contains any whitespace, special characters, or dynamic variable syntax ${
         $needsQuotes = $value === ''
             || preg_match('/\s/', $value) === 1
+            || str_contains($value, '${')
             || strpbrk($value, '#"=\\') !== false;
 
         if ($needsQuotes) {
