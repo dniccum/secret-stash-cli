@@ -223,7 +223,11 @@ class VaultrVariablesCommand extends BasicCommand
         }
 
         if (! $encodedKey && $required) {
-            // TODO get `APP_ENV` from `.env` file
+            $appEnv = $this->getAppEnvFromEnvFile();
+            if ($appEnv) {
+                $environmentSlug = $appEnv;
+            }
+
             $encodedKey = text(
                 label: "No key found for environment {$environmentSlug}. Let's generate one now.",
                 required: true
@@ -232,6 +236,32 @@ class VaultrVariablesCommand extends BasicCommand
         }
 
         return $encodedKey ? CryptoHelper::base64urlDecode($encodedKey) : null;
+    }
+
+    protected function getAppEnvFromEnvFile(): ?string
+    {
+        $filePath = $this->option('file') ?? '.env';
+
+        if (! file_exists($filePath)) {
+            return null;
+        }
+
+        $content = file_get_contents($filePath);
+        $lines = explode("\n", $content);
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line) || str_starts_with($line, '#')) {
+                continue;
+            }
+
+            $parts = explode('=', $line, 2);
+            if (count($parts) === 2 && $parts[0] === 'APP_ENV') {
+                return trim($parts[1], '"\'');
+            }
+        }
+
+        return null;
     }
 
     protected function createEnvironment(): void
