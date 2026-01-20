@@ -115,7 +115,7 @@ it('correctly decrypts values during pull if key is provided', function () {
 
 it('does not write null values to .env when pulling', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
-    File::put($tempEnv, "EXISTING_VAR=some_value");
+    File::put($tempEnv, 'EXISTING_VAR=some_value');
 
     $this->mock(VaultrClient::class, function ($mock) {
         $mock->makePartial();
@@ -145,9 +145,12 @@ it('correctly reads APP_ENV from .env file', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_ENV=staging\n");
 
-    $command = new class extends \Dniccum\Vaultr\Commands\VaultrVariablesCommand {
-        public function testGetAppEnv($file) {
+    $command = new class extends \Dniccum\Vaultr\Commands\VaultrVariablesCommand
+    {
+        public function testGetAppEnv($file)
+        {
             $this->input = new \Symfony\Component\Console\Input\ArrayInput(['--file' => $file], $this->getDefinition());
+
             return $this->getAppEnvFromEnvFile();
         }
     };
@@ -161,9 +164,12 @@ it('correctly reads APP_ENV from .env file with quotes', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_ENV=\"production\"\n");
 
-    $command = new class extends \Dniccum\Vaultr\Commands\VaultrVariablesCommand {
-        public function testGetAppEnv($file) {
+    $command = new class extends \Dniccum\Vaultr\Commands\VaultrVariablesCommand
+    {
+        public function testGetAppEnv($file)
+        {
             $this->input = new \Symfony\Component\Console\Input\ArrayInput(['--file' => $file], $this->getDefinition());
+
             return $this->getAppEnvFromEnvFile();
         }
     };
