@@ -3,6 +3,7 @@
 namespace Dniccum\Vaultr;
 
 use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
+use Dniccum\Vaultr\Crypto\CryptoHelper;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
@@ -14,13 +15,16 @@ class VaultrClient
 
     protected ?string $apiToken;
 
+    protected ?string $encryptionKey = null;
+
     /**
      * @throws \Throwable
      */
-    public function __construct(?string $apiUrl = null, ?string $apiToken = null)
+    public function __construct(?string $apiUrl = null, ?string $apiToken = null, ?string $encryptionKey = null)
     {
         $this->apiUrl = $apiUrl ? rtrim($apiUrl, '/') : config('vaultr.api_url');
         $this->apiToken = $apiToken ?? config('vaultr.api_token');
+        $this->encryptionKey = $encryptionKey;
 
         throw_if(empty($this->apiUrl), new InvalidEnvironmentConfiguration('API url is not configured. Please set VAULTR_API_URL in your .env file.'));
         throw_if(empty($this->apiToken), new InvalidEnvironmentConfiguration('API token is not configured. Please set VAULTR_API_TOKEN in your .env file.'));
@@ -203,8 +207,12 @@ class VaultrClient
      * You may optionally provide a custom .env path; by default the method tries to
      * resolve the Laravel project's base .env, falling back to the current working directory.
      */
-    public function syncEnvFromVariables(array $variables, ?string $envPath = null): void
+    public function syncEnvFromVariables(array $variables, ?string $envPath = null, ?string $encryptionKey = null): void
     {
+        if ($encryptionKey) {
+            $this->encryptionKey = $encryptionKey;
+        }
+
         $envPath = $this->resolveEnvPath($envPath);
         $kv = $this->normalizeVariables($variables);
 
@@ -227,8 +235,8 @@ class VaultrClient
             }
 
             // Match KEY=VALUE where KEY does not contain spaces and starts the line
-            if (preg_match('/^([A-Z0-9_]+)\s*=.*/', $line, $m)) {
-                $key = $m[1];
+            if (preg_match('/^([-A-Z0-9_.]+)\s*=.*/i', $line, $m)) {
+                $key = strtolower($m[1]);
                 if (! isset($keyLineIndex[$key])) {
                     $keyLineIndex[$key] = $i;
                 }
@@ -238,8 +246,9 @@ class VaultrClient
         $updatedKeys = [];
         foreach ($kv as $key => $value) {
             $formatted = $this->formatEnvAssignment($key, $value);
-            if (isset($keyLineIndex[$key])) {
-                $lines[$keyLineIndex[$key]] = $formatted;
+            $lookupKey = strtolower($key);
+            if (isset($keyLineIndex[$lookupKey])) {
+                $lines[$keyLineIndex[$lookupKey]] = $formatted;
             } else {
                 $lines[] = $formatted;
             }
@@ -261,10 +270,10 @@ class VaultrClient
     /**
      * Convenience method: fetch variables via API and immediately sync to .env.
      */
-    public function syncEnvFileFromApi(string $organizationId, string $applicationId, string $environmentId, ?string $envPath = null): void
+    public function syncEnvFileFromApi(string $applicationId, string $environmentId, ?string $envPath = null, ?string $encryptionKey = null): void
     {
-        $variables = $this->getVariables($organizationId, $applicationId, $environmentId);
-        $this->syncEnvFromVariables($variables, $envPath);
+        $variables = $this->getVariables($applicationId, $environmentId);
+        $this->syncEnvFromVariables($variables, $envPath, $encryptionKey);
     }
 
     /**
@@ -334,20 +343,35 @@ class VaultrClient
             }
 
             $value = null;
-            // Direct value
-            if (array_key_exists('value', $item) && (is_scalar($item['value']) || $item['value'] === null)) {
-                $value = $item['value'];
-            }
             // Common payload structures
-            if ($value === null && isset($item['payload']) && is_array($item['payload'])) {
+            if (isset($item['payload']) && is_array($item['payload'])) {
                 $payload = $item['payload'];
-                if (array_key_exists('value', $payload) && (is_scalar($payload['value']) || $payload['value'] === null)) {
-                    $value = $payload['value'];
-                } elseif (array_key_exists('decrypted', $payload) && (is_scalar($payload['decrypted']) || $payload['decrypted'] === null)) {
-                    $value = $payload['decrypted'];
-                } elseif (array_key_exists('plain', $payload) && (is_scalar($payload['plain']) || $payload['plain'] === null)) {
-                    $value = $payload['plain'];
+
+                if ($this->encryptionKey && isset($payload['alg']) && $payload['alg'] === 'AES-GCM') {
+                    try {
+                        $rawKey = CryptoHelper::base64urlDecode($this->encryptionKey);
+                        $value = CryptoHelper::aesGcmDecrypt($payload, $rawKey);
+                    } catch (\Throwable $e) {
+                        // If decryption fails, we'll try to fallback or skip
+                    }
                 }
+
+                if ($value === null) {
+                    if (array_key_exists('value', $payload) && (is_scalar($payload['value']) || $payload['value'] === null)) {
+                        $value = $payload['value'];
+                    } elseif (array_key_exists('decrypted', $payload) && (is_scalar($payload['decrypted']) || $payload['decrypted'] === null)) {
+                        $value = $payload['decrypted'];
+                    } elseif (array_key_exists('plain', $payload) && (is_scalar($payload['plain']) || $payload['plain'] === null)) {
+                        $value = $payload['plain'];
+                    } elseif (array_key_exists('ct', $payload) && (is_scalar($payload['ct']) || $payload['ct'] === null)) {
+                        $value = $payload['ct'];
+                    }
+                }
+            }
+
+            // Direct value
+            if ($value === null && array_key_exists('value', $item) && (is_scalar($item['value']) || $item['value'] === null)) {
+                $value = $item['value'];
             }
 
             // Fallback: stringify a scalar-looking 'data'

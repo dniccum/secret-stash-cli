@@ -45,3 +45,4 @@ return [
     */
     'default_organization_id' => env('VAULTR_DEFAULT_ORGANIZATION_ID'),
 ];
+// TODO add config to ignore variables within the .env file

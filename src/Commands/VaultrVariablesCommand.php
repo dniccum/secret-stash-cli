@@ -19,7 +19,8 @@ class VaultrVariablesCommand extends BasicCommand
                             {action? : The action to perform (list, pull, push)}
                             {--application= : Application ID}
                             {--environment= : Environment ID}
-                            {--file= : .env file path for pull/push actions}';
+                            {--file= : .env file path for pull/push actions}
+                            {--key= : Encryption key for pull/push actions}';
 
     protected $description = 'Manage Vaultr environment variables';
 
@@ -38,7 +39,7 @@ class VaultrVariablesCommand extends BasicCommand
             };
 
             return self::SUCCESS;
-        } catch (InvalidEnvironmentConfiguration|\Throwable $e) {
+        } catch (\Throwable $e) {
             error($e->getMessage());
 
             return self::FAILURE;
@@ -86,6 +87,20 @@ class VaultrVariablesCommand extends BasicCommand
         $applicationId = $this->applicationId;
         $environmentId = $this->environmentSlug;
 
+        $key = $this->option('key') ?: $this->getEnvironmentKey($environmentId, false);
+        $rawKey = null;
+        if ($key) {
+            if (strlen($key) === 32) {
+                $rawKey = $key;
+            } else {
+                try {
+                    $rawKey = CryptoHelper::base64urlDecode($key);
+                } catch (\Throwable $e) {
+                    // Fallback or ignore
+                }
+            }
+        }
+
         $response = $client->getVariables($applicationId, $environmentId);
         $variables = $response['data'] ?? [];
 
@@ -95,7 +110,7 @@ class VaultrVariablesCommand extends BasicCommand
             return;
         }
 
-        $client->syncEnvFromVariables($variables, $filePath);
+        $client->syncEnvFromVariables($variables, $filePath, $rawKey ? CryptoHelper::base64urlEncode($rawKey) : null);
 
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Variables pulled successfully!');
@@ -166,12 +181,18 @@ class VaultrVariablesCommand extends BasicCommand
         spin(
             callback: function () use ($client, $variables, &$created, &$failed, $key) {
                 foreach ($variables as $name => $value) {
+                    $payload = null;
                     try {
                         if ($value && $value !== '') {
                             $payload = CryptoHelper::aesGcmEncrypt($value, $key);
-                        } else {
-                            $payload = null;
                         }
+                        if ($value === null) {
+                            // TODO Add "null" placeholder so the value is not null and then be sent to the api.
+                            // TODO add logic to handle null values
+                            $payload = CryptoHelper::aesGcmEncrypt('null', $key);
+                        }
+
+                        throw_if($payload === null, \Exception::class, "Payload for '$name' cannot be null.");
                         $client->createVariable($this->applicationId, $this->environmentSlug, $name, $payload);
                         $created++;
                     } catch (\Exception $e) {
@@ -192,7 +213,7 @@ class VaultrVariablesCommand extends BasicCommand
         $this->newLine();
     }
 
-    protected function getEnvironmentKey(string $environmentSlug): string
+    protected function getEnvironmentKey(string $environmentSlug, bool $required = true): ?string
     {
         $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
         $keysFile = $homeDir.'/.vaultr/keys.json';
@@ -203,16 +224,16 @@ class VaultrVariablesCommand extends BasicCommand
             $encodedKey = $keys[$environmentSlug] ?? null;
         }
 
-        if (! $encodedKey) {
+        if (! $encodedKey && $required) {
             // TODO get `APP_ENV` from `.env` file
             $encodedKey = text(
                 label: "No key found for environment {$environmentSlug}. Let's generate one now.",
                 required: true
             );
-            \Artisan::call('vaultr:keys generate', ['--environment' => $environmentSlug]);
+            $this->callSilently('vaultr:keys', ['action' => 'generate', '--environment' => $environmentSlug]);
         }
 
-        return CryptoHelper::base64urlDecode($encodedKey);
+        return $encodedKey ? CryptoHelper::base64urlDecode($encodedKey) : null;
     }
 
     protected function createEnvironment(): void
