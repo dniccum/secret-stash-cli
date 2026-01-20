@@ -3,7 +3,6 @@
 namespace Dniccum\Vaultr\Commands;
 
 use Dniccum\Vaultr\Crypto\CryptoHelper;
-use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\Vaultr\VaultrClient;
 
 use function Laravel\Prompts\confirm;
