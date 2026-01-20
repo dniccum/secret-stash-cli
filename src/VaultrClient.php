@@ -2,8 +2,8 @@
 
 namespace Dniccum\Vaultr;
 
-use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\Vaultr\Crypto\CryptoHelper;
+use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
