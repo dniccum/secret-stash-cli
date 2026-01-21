@@ -142,6 +142,10 @@ class VaultrVariablesCommand extends BasicCommand
 
             $parts = explode('=', $line, 2);
             if (count($parts) === 2) {
+                if (str_starts_with($parts[0], 'VAULTR_')) {
+                    continue;
+                }
+
                 $variables[$parts[0]] = $parts[1];
             }
         }
