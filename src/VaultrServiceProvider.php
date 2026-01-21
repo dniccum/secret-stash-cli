@@ -3,6 +3,7 @@
 namespace Dniccum\Vaultr;
 
 use Dniccum\Vaultr\Commands\VaultrEnvironmentsCommand;
+use Dniccum\Vaultr\Commands\VaultrInstallCommand;
 use Dniccum\Vaultr\Commands\VaultrKeysCommand;
 use Dniccum\Vaultr\Commands\VaultrVariablesCommand;
 use Spatie\LaravelPackageTools\Package;
@@ -22,6 +23,7 @@ class VaultrServiceProvider extends PackageServiceProvider
             ->hasConfigFile('vaultr')
             ->hasCommands([
                 VaultrEnvironmentsCommand::class,
+                VaultrInstallCommand::class,
                 VaultrKeysCommand::class,
                 VaultrVariablesCommand::class,
             ]);
