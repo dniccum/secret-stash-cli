@@ -145,7 +145,7 @@ class VaultrVariablesCommand extends BasicCommand
                 $key = trim($parts[0]);
                 $value = trim($parts[1]);
 
-                if (str_starts_with($key, 'VAULTR_')) {
+                if (str_starts_with($key, 'VAULTR_') || in_array($key, config('vaultr.ignored_variables', []), true)) {
                     continue;
                 }
 

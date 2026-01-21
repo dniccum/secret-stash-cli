@@ -244,7 +244,13 @@ class VaultrClient
         }
 
         $updatedKeys = [];
+        $ignoredVariables = config('vaultr.ignored_variables', []);
+
         foreach ($kv as $key => $value) {
+            if (in_array($key, $ignoredVariables, true)) {
+                continue;
+            }
+
             $formatted = $this->formatEnvAssignment($key, $value);
             $lookupKey = strtolower($key);
             if (isset($keyLineIndex[$lookupKey])) {

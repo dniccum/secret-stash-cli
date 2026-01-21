@@ -183,3 +183,91 @@ EOD;
         unset($_SERVER['HOME']);
     }
 });
+
+it('skips variables defined in ignored_variables config when pushing', function () {
+    // Arrange
+    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    File::put($tempEnv, "APP_NAME=VaultrApp\nIGNORE_ME=true\nDB_PASSWORD=password123");
+
+    // Mock config
+    config(['vaultr.ignored_variables' => ['IGNORE_ME']]);
+
+    $this->mock(VaultrClient::class, function ($mock) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing']]]);
+
+        // Should only be called for APP_NAME and DB_PASSWORD
+        $mock->shouldReceive('createVariable')
+            ->twice()
+            ->with('app_123', 'testing', Mockery::on(function ($name) {
+                return $name !== 'IGNORE_ME';
+            }), Mockery::any())
+            ->andReturn([]);
+    });
+
+    // Create a dummy key file
+    $homeDir = sys_get_temp_dir().'/vaultr_test_home_ignored';
+    if (! file_exists($homeDir)) {
+        mkdir($homeDir, 0777, true);
+    }
+    $keysFile = $homeDir.'/.vaultr/keys.json';
+    if (! file_exists(dirname($keysFile))) {
+        mkdir(dirname($keysFile), 0777, true);
+    }
+
+    $fakeKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; // 32 bytes
+    File::put($keysFile, json_encode(['testing' => CryptoHelper::base64urlEncode($fakeKey)]));
+
+    $oldHome = $_SERVER['HOME'] ?? null;
+    $_SERVER['HOME'] = $homeDir;
+
+    // Act & Assert
+    $this->artisan("vaultr:variables push --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Push 2 variable(s) to your Vaultr application?', true)
+        ->expectsOutputToContain('Push completed!')
+        ->expectsOutputToContain('Created or Updated: 2')
+        ->assertSuccessful();
+
+    // Cleanup
+    unlink($tempEnv);
+    File::deleteDirectory($homeDir);
+    if ($oldHome) {
+        $_SERVER['HOME'] = $oldHome;
+    } else {
+        unset($_SERVER['HOME']);
+    }
+});
+
+it('skips variables defined in ignored_variables config when pulling', function () {
+    // Arrange
+    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    File::put($tempEnv, 'EXISTING_VAR=old_value');
+
+    // Mock config
+    config(['vaultr.ignored_variables' => ['IGNORE_ME_TOO']]);
+
+    $this->mock(VaultrClient::class, function ($mock) {
+        $mock->makePartial();
+        $mock->shouldReceive('getVariables')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    ['name' => 'NEW_VAR', 'payload' => ['value' => 'added_value']],
+                    ['name' => 'IGNORE_ME_TOO', 'payload' => ['value' => 'should_not_be_here']],
+                ],
+            ]);
+    });
+
+    // Act & Assert
+    $this->artisan("vaultr:variables pull --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsOutputToContain('Variables pulled successfully!')
+        ->assertSuccessful();
+
+    $content = File::get($tempEnv);
+    expect($content)->toContain('NEW_VAR=added_value')
+        ->not->toContain('IGNORE_ME_TOO');
+
+    // Cleanup
+    unlink($tempEnv);
+});

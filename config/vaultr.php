@@ -44,5 +44,16 @@ return [
     |
     */
     'default_organization_id' => env('VAULTR_DEFAULT_ORGANIZATION_ID'),
+    /*
+    |--------------------------------------------------------------------------
+    | Ignored Environment Variables
+    |--------------------------------------------------------------------------
+    |
+    | A list of environment variables that should be ignored when pushing
+    | to or pulling from the Vaultr API. These keys are case-sensitive.
+    |
+    | The VAULTR_ prefix is always ignored by default.
+    |
+    */
+    'ignored_variables' => [],
 ];
-// TODO add config to ignore variables within the .env file
