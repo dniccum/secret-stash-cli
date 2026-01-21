@@ -9,10 +9,6 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
 
 ## Table of Contents
 
-Here is the Table of Contents for the Vaultr CLI documentation:
-
-## Table of Contents
-
 - [**Features**](#features)
 - [**Requirements**](#requirements)
 - [**Installation**](#installation)
