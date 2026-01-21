@@ -135,18 +135,21 @@ class VaultrVariablesCommand extends BasicCommand
         $variables = [];
 
         foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line) || str_starts_with($line, '#')) {
+            $trimmedLine = trim($line);
+            if (empty($trimmedLine) || str_starts_with($trimmedLine, '#')) {
                 continue;
             }
 
-            $parts = explode('=', $line, 2);
+            $parts = explode('=', $trimmedLine, 2);
             if (count($parts) === 2) {
-                if (str_starts_with($parts[0], 'VAULTR_')) {
+                $key = trim($parts[0]);
+                $value = trim($parts[1]);
+
+                if (str_starts_with($key, 'VAULTR_')) {
                     continue;
                 }
 
-                $variables[$parts[0]] = $parts[1];
+                $variables[$key] = $value;
             }
         }
 
