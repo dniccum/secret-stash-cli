@@ -2,7 +2,6 @@
 
 namespace Dniccum\Vaultr\Commands;
 
-use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\Vaultr\VaultrClient;
 
 use function Laravel\Prompts\error;
