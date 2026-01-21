@@ -4,7 +4,6 @@ namespace Dniccum\Vaultr\Commands;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\text;
 
 class VaultrInstallCommand extends BasicCommand
 {
@@ -20,8 +19,6 @@ class VaultrInstallCommand extends BasicCommand
 
     /**
      * Execute the console command.
-     *
-     * @return int
      */
     public function handle(): int
     {
