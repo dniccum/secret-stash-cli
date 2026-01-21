@@ -36,16 +36,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Organization ID
-    |--------------------------------------------------------------------------
-    |
-    | The default organization ID to use when not specified in commands.
-    | This can be overridden using the --organization option.
-    |
-    */
-    'default_organization_id' => env('VAULTR_DEFAULT_ORGANIZATION_ID'),
-    /*
-    |--------------------------------------------------------------------------
     | Ignored Environment Variables
     |--------------------------------------------------------------------------
     |
