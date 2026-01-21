@@ -12,6 +12,8 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
 - [**Features**](#features)
 - [**Requirements**](#requirements)
 - [**Installation**](#installation)
+    - [**API Key**](#api-key)
+    - [**Application Id**](#application-id)
 - [**Usage**](#usage)
     - [**Managing Variables**](#managing-variables)
         - [Pulling Variables](#pulling-variables) (`vaultr:variables pull`)
@@ -59,6 +61,25 @@ php artisan vaultr:install
 
 > [!IMPORTANT]
 > This package creates a `~/.vaultr/keys.json` file on your machine. Ensure this directory is secure as it contains the keys required to decrypt your environment variables.
+
+### API Key
+
+Within the Vaultr application interface, go to your user's profile settings, and access the "Tokens" tab. Provide a unique name for a token and then click "Create." Copy the provided token and set it as the `VAULTR_API_KEY` environment variable in your `.env` file:
+
+```dotenv
+VAULTR_API_KEY=your_token_here
+```
+
+### Application ID
+
+If you have not already, create a new application within Vaultr. You can do this by navigating to the "Dashboard" page in the Vaultr application interface and click "New application." Provide a name for your application and click "Create." Copy the provided application ID and set it as the `VAULTR_APPLICATION_ID` environment variable in your `.env` file:
+
+```dotenv
+VAULTR_APPLICATION_ID=your_application_id_here
+```
+
+> [!NOTE]
+> The Vaultr CLI requires both the API key and Application ID to be present to work. Failure to set them will throw an error.
 
 ## Usage
 
