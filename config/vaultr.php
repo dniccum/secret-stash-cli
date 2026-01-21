@@ -3,17 +3,6 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Vaultr API URL
-    |--------------------------------------------------------------------------
-    |
-    | The base URL for your Vaultr API instance. This should include the
-    | protocol (http/https) and domain, but not the /api path.
-    |
-    */
-    'api_url' => env('VAULTR_API_URL', 'http://localhost:8000'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Vaultr API Token
     |--------------------------------------------------------------------------
     |
@@ -46,4 +35,15 @@ return [
     |
     */
     'ignored_variables' => [],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vaultr API URL
+    |--------------------------------------------------------------------------
+    |
+    | The base URL for your Vaultr API instance. This should include the
+    | protocol (http/https) and domain, but not the /api path.
+    |
+    */
+    'api_url' => env('VAULTR_API_URL', 'http://localhost:8000'),
 ];
