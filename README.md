@@ -14,6 +14,7 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
 - [**Installation**](#installation)
     - [**API Key**](#api-key)
     - [**Application Id**](#application-id)
+- [**Configuration**](#configuration)
 - [**Usage**](#usage)
     - [**Managing Variables**](#managing-variables)
         - [Pulling Variables](#pulling-variables) (`vaultr:variables pull`)
@@ -80,6 +81,31 @@ VAULTR_APPLICATION_ID=your_application_id_here
 
 > [!NOTE]
 > The Vaultr CLI requires both the API key and Application ID to be present to work. Failure to set them will throw an error.
+
+## Configuration
+
+If you have not already, publish the configuration file using `php artisan vendor:publish php artisan vendor:publish --tag=vaultr-config`. This will create a `config/vaultr.php` file where you can customize the package's behavior.
+
+### Ignored Variables
+
+In the event that you do want Vaultr to make a record of variables, you can define them within the `vaultr.ignored_variables` section of the `config/vaultr.php` file. This is useful for variables that are dynamically generated, specific to your environment, or should not be stored in Vaultr.
+
+**Example**
+
+The example below would not sync (pull or push) the `DB_DATABASE` or `DB_USERNAME` variables to the target `.env` file.
+
+```php
+return [
+    'ignored_variables' => [
+        'DB_DATABASE',
+        'DB_USERNAME',
+        // Add more variables as needed
+    ],
+];
+```
+
+> [!NOTE]
+> The `vaultr:variables push` command automatically ignores variables starting with `VAULTR_` to prevent circular configuration issues.
 
 ## Usage
 
