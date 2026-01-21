@@ -75,6 +75,8 @@ class VaultrEnvironmentsCommand extends BasicCommand
             ];
         }, $environments);
 
+        $this->info("Found ".count($environments)." environment(s)");
+
         table(
             ['ID', 'Name', 'Slug', 'Type', 'Variables', 'Created'],
             $rows

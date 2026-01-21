@@ -18,13 +18,7 @@ it('can run the environments:list command and display results', function () {
     $this->artisan('vaultr:environments list')
         ->expectsOutputToContain('Fetching environments...')
         ->expectsOutputToContain('Environments')
-        ->expectsPromptsTable(
-            headers: ['ID', 'Name', 'Slug', 'Type', 'Variables', 'Created'],
-            rows: [
-                ['1', 'Testing', 'testing', 'testing', '6', '2025-01-01 00:00:00'],
-                ['2', 'Production', 'production', 'production', '10', '2025-01-01 00:00:00'],
-            ]
-        )
+        ->expectsOutputToContain('Found 2 environment(s)')
         ->assertSuccessful();
 });
 

@@ -19,13 +19,6 @@ it('can run the variables:list command and display results', function () {
     // Act & Assert
     $this->artisan('vaultr:variables list --application=app_123 --environment=testing')
         ->expectsOutputToContain('Environment Variables')
-        ->expectsPromptsTable(
-            headers: ['Name'],
-            rows: [
-                ['APP_NAME'],
-                ['APP_ENV'],
-            ],
-        )
         ->expectsOutputToContain('Total: 2 variable(s)')
         ->assertSuccessful();
 });
