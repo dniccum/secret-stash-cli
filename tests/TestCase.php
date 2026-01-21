@@ -4,8 +4,8 @@ namespace Dniccum\Vaultr\Tests;
 
 use Dniccum\Vaultr\VaultrServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Orchestra\Testbench\TestCase as Orchestra;
 use Laravel\Prompts\Prompt;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
 {
