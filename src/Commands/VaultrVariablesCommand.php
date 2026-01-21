@@ -189,10 +189,10 @@ class VaultrVariablesCommand extends BasicCommand
                 foreach ($variables as $name => $value) {
                     $payload = null;
                     try {
-                        if ($value !== null && $value !== '') {
+                        if ($value !== '') {
                             $payload = CryptoHelper::aesGcmEncrypt($value, $key);
                         }
-                        if ($value === null || $value === '') {
+                        if (empty($value)) {
                             $payload = CryptoHelper::aesGcmEncrypt('null', $key);
                         }
 

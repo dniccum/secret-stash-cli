@@ -14,6 +14,7 @@ abstract class BasicCommand extends Command
     protected string $environmentSlug;
 
     /**
+     * @throws InvalidEnvironmentConfiguration
      * @throws \Throwable
      */
     protected function setEnvironment(): void
@@ -21,7 +22,10 @@ abstract class BasicCommand extends Command
         $this->applicationId = $this->hasOption('application') && $this->option('application') ? $this->option('application') : config('vaultr.application_id', '');
         $this->environmentSlug = $this->hasOption('environment') && $this->option('environment') ? $this->option('environment') : config('app.env');
 
-        throw_if(empty($this->applicationId), new InvalidEnvironmentConfiguration('An application ID must be provided.'));
+        if (empty($this->applicationId)) {
+            throw new InvalidEnvironmentConfiguration('An application ID must be provided.');
+        }
+
         while (empty($this->environmentSlug)) {
             $this->environmentSlug = text('The environment that you would like to interact with', required: true);
         }

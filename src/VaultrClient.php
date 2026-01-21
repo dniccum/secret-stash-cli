@@ -18,6 +18,7 @@ class VaultrClient
     protected ?string $encryptionKey = null;
 
     /**
+     * @throws InvalidEnvironmentConfiguration
      * @throws \Throwable
      */
     public function __construct(?string $apiUrl = null, ?string $apiToken = null, ?string $encryptionKey = null)
@@ -26,8 +27,13 @@ class VaultrClient
         $this->apiToken = $apiToken ?? config('vaultr.api_token');
         $this->encryptionKey = $encryptionKey;
 
-        throw_if(empty($this->apiUrl), new InvalidEnvironmentConfiguration('API url is not configured. Please set VAULTR_API_URL in your .env file.'));
-        throw_if(empty($this->apiToken), new InvalidEnvironmentConfiguration('API token is not configured. Please set VAULTR_API_TOKEN in your .env file.'));
+        if (empty($this->apiUrl)) {
+            throw new InvalidEnvironmentConfiguration('API url is not configured. Please set VAULTR_API_URL in your .env file.');
+        }
+
+        if (empty($this->apiToken)) {
+            throw new InvalidEnvironmentConfiguration('API token is not configured. Please set VAULTR_API_TOKEN in your .env file.');
+        }
 
         $this->client = new Client([
             'base_uri' => $this->apiUrl.'/api/',
@@ -381,7 +387,7 @@ class VaultrClient
             }
 
             // Fallback: stringify a scalar-looking 'data'
-            if ($value === null && isset($item['data']) && (is_scalar($item['data']) || $item['data'] === null)) {
+            if ($value === null && array_key_exists('data', $item) && (is_scalar($item['data']) || $item['data'] === null)) {
                 $value = $item['data'];
             }
 

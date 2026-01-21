@@ -140,17 +140,11 @@ it('correctly reads APP_ENV from .env file', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_ENV=staging\n");
 
-    $command = new class extends \Dniccum\Vaultr\Commands\VaultrVariablesCommand
-    {
-        public function testGetAppEnv($file)
-        {
-            $this->input = new \Symfony\Component\Console\Input\ArrayInput(['--file' => $file], $this->getDefinition());
+    $command = Mockery::mock(\Dniccum\Vaultr\Commands\VaultrVariablesCommand::class)->makePartial();
+    $command->shouldAllowMockingProtectedMethods();
+    $command->shouldReceive('option')->with('file')->andReturn($tempEnv);
 
-            return $this->getAppEnvFromEnvFile();
-        }
-    };
-
-    expect($command->testGetAppEnv($tempEnv))->toBe('staging');
+    expect($command->getAppEnvFromEnvFile())->toBe('staging');
 
     unlink($tempEnv);
 });
@@ -159,17 +153,11 @@ it('correctly reads APP_ENV from .env file with quotes', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_ENV=\"production\"\n");
 
-    $command = new class extends \Dniccum\Vaultr\Commands\VaultrVariablesCommand
-    {
-        public function testGetAppEnv($file)
-        {
-            $this->input = new \Symfony\Component\Console\Input\ArrayInput(['--file' => $file], $this->getDefinition());
+    $command = Mockery::mock(\Dniccum\Vaultr\Commands\VaultrVariablesCommand::class)->makePartial();
+    $command->shouldAllowMockingProtectedMethods();
+    $command->shouldReceive('option')->with('file')->andReturn($tempEnv);
 
-            return $this->getAppEnvFromEnvFile();
-        }
-    };
-
-    expect($command->testGetAppEnv($tempEnv))->toBe('production');
+    expect($command->getAppEnvFromEnvFile())->toBe('production');
 
     unlink($tempEnv);
 });

@@ -40,7 +40,7 @@ class VaultrEnvironmentsCommand extends BasicCommand
             };
 
             return self::SUCCESS;
-        } catch (InvalidEnvironmentConfiguration|\Throwable $e) {
+        } catch (\Throwable $e) {
             error($e->getMessage());
 
             return self::FAILURE;

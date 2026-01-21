@@ -60,8 +60,8 @@ class VaultrKeysCommand extends BasicCommand
         $rows = [];
         foreach ($keys as $envId => $key) {
             $rows[] = [
-                'Environment ID' => $envId,
-                'Key (truncated)' => substr($key, 0, 16).'...',
+                $envId,
+                substr($key, 0, 16).'...',
             ];
         }
 
