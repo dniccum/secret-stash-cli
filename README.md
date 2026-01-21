@@ -11,7 +11,6 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
 
 - 🎨 **Beautiful Console Interface** - Built with Laravel Prompts for an interactive, user-friendly experience
 - 🔐 **Secure API Authentication** - Uses Laravel Sanctum tokens for secure API access
-- 📦 **Complete Resource Management** - Manage organizations, applications, environments, and variables
 - 🚀 **Easy Installation** - Simple Composer installation with Laravel auto-discovery
 - 💾 **Environment File Sync** - Pull and push variables to/from .env files
 - ✨ **Interactive Prompts** - Smart prompts guide you through each operation
@@ -36,46 +35,6 @@ You can publish the config file with:
 php artisan vendor:publish --tag=vaultr-config
 ```
 
-This is the contents of the published config file:
-
-```php
-return [
-    /*
-    |--------------------------------------------------------------------------
-    | Vaultr API URL
-    |--------------------------------------------------------------------------
-    |
-    | The base URL for your Vaultr API instance. This should include the
-    | protocol (http/https) and domain, but not the /api path.
-    |
-    */
-    'api_url' => env('VAULTR_API_URL', 'http://localhost:8000'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Vaultr API Token
-    |--------------------------------------------------------------------------
-    |
-    | Your personal API token for authenticating with the Vaultr API.
-    | You can generate this token using the vaultr:token command or
-    | through the Vaultr web interface.
-    |
-    */
-    'api_token' => env('VAULTR_API_TOKEN'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Default Organization ID
-    |--------------------------------------------------------------------------
-    |
-    | The default organization ID to use when not specified in commands.
-    | This can be overridden using the --organization option.
-    |
-    */
-    'default_organization_id' => env('VAULTR_DEFAULT_ORGANIZATION_ID'),
-];
-```
-
 ## Usage
 
 ```php
@@ -85,8 +44,16 @@ echo $vaultrCli->echoPhrase('Hello, Doug Niccum Design, LLC!');
 
 ## Testing
 
+Use Composer: 
+
 ```bash
 composer test
+```
+
+or Pest:
+
+```bash
+./vendor/bin/pest
 ```
 
 ## Changelog
