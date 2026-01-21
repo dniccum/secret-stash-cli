@@ -55,6 +55,7 @@ This is a package that allows users to interact with the Vaultr cloud applicatio
 - You must not remove any tests or test files from the tests directory without approval. These are not temporary or helper files - these are core to the application.
 - Tests should test all of the happy paths, failure paths, and weird paths.
 - Tests live in the `tests/Feature` and `tests/Unit` directories.
+- Unit and Feature tests must be grouped by subject or feature to keep the test suite organized. If a feature does not have an existing test suite, you may create a new feature file.
 - Pest tests look and behave like this:
   <code-snippet name="Basic Pest Test Example" lang="php">
   it('is true', function () {
