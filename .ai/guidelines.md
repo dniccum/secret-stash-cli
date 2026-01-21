@@ -130,7 +130,7 @@ it('may reset the password', function () {
         ->click('Forgot Password?')
         ->fill('email', 'nuno@laravel.com')
         ->click('Send Reset Link')
-        ->assertSee('We have emailed your password reset link!')
+        ->assertSee('We have emailed your password reset link!');
 
     Notification::assertSent(ResetPassword::class);
 });
