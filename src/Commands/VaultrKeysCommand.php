@@ -140,11 +140,4 @@ class VaultrKeysCommand extends BasicCommand
         }
         chmod($this->keysFile, 0600);
     }
-
-    public function getKey(string $envId): ?string
-    {
-        $keys = $this->loadKeys();
-
-        return $keys[$envId] ?? null;
-    }
 }
