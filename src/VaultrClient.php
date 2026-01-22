@@ -78,36 +78,6 @@ class VaultrClient
     }
 
     /**
-     * Make a PATCH request to the API.
-     */
-    public function patch(string $endpoint, array $data = []): array
-    {
-        try {
-            $response = $this->client->patch($endpoint, [
-                'json' => $data,
-            ]);
-
-            return json_decode($response->getBody()->getContents(), true);
-        } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * Make a DELETE request to the API.
-     */
-    public function delete(string $endpoint): array
-    {
-        try {
-            $response = $this->client->delete($endpoint);
-
-            return json_decode($response->getBody()->getContents(), true);
-        } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
      * Get authentication headers.
      */
     protected function getAuthHeaders(): array
@@ -119,54 +89,6 @@ class VaultrClient
         return [
             'Authorization' => 'Bearer '.$this->apiToken,
         ];
-    }
-
-    /**
-     * Get all organizations.
-     */
-    public function getOrganizations(): array
-    {
-        return $this->get('organizations');
-    }
-
-    /**
-     * Get a specific organization.
-     */
-    public function getOrganization(string $organizationId): array
-    {
-        return $this->get("organizations/{$organizationId}");
-    }
-
-    /**
-     * Create a new organization.
-     */
-    public function createOrganization(string $name): array
-    {
-        return $this->post('organizations', ['name' => $name]);
-    }
-
-    /**
-     * Get applications for an organization.
-     */
-    public function getApplications(string $organizationId): array
-    {
-        return $this->get("organizations/{$organizationId}/applications");
-    }
-
-    /**
-     * Get a specific application.
-     */
-    public function getApplication(string $organizationId, string $applicationId): array
-    {
-        return $this->get("organizations/{$organizationId}/applications/{$applicationId}");
-    }
-
-    /**
-     * Create a new application.
-     */
-    public function createApplication(string $organizationId, string $name): array
-    {
-        return $this->post("organizations/{$organizationId}/applications", ['name' => $name]);
     }
 
     /**
@@ -281,6 +203,8 @@ class VaultrClient
 
     /**
      * Convenience method: fetch variables via API and immediately sync to .env.
+     *
+     * @note Keep this method for now for future compatibility with VaultrKeysCommand.
      */
     public function syncEnvFileFromApi(string $applicationId, string $environmentId, ?string $envPath = null, ?string $encryptionKey = null): void
     {
@@ -438,26 +362,5 @@ class VaultrClient
             'name' => $name,
             'payload' => $payload,
         ]);
-    }
-
-    /**
-     * Update a variable.
-     */
-    public function updateVariable(string $organizationId, string $applicationId, string $environmentId, string $variableId, string $name, ?array $payload = null): array
-    {
-        $data = ['name' => $name];
-        if ($payload !== null) {
-            $data['payload'] = $payload;
-        }
-
-        return $this->patch("organizations/{$organizationId}/applications/{$applicationId}/environments/{$environmentId}/variables/{$variableId}", $data);
-    }
-
-    /**
-     * Delete a variable.
-     */
-    public function deleteVariable(string $organizationId, string $applicationId, string $environmentId, string $variableId): array
-    {
-        return $this->delete("organizations/{$organizationId}/applications/{$applicationId}/environments/{$environmentId}/variables/{$variableId}");
     }
 }
