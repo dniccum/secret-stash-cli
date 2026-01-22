@@ -2,7 +2,7 @@
     "name": "dniccum/vaultr-cli",
     "description": "A PHP-based Composer package to interact with the Vaultr environment variable service.",
     "keywords": [
-        "Doug Niccum Design, LLC",
+        "vaultr",
         "dniccum",
         "environment",
         "variables",
