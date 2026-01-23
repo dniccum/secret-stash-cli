@@ -97,9 +97,6 @@ class VaultrClient
 
     /**
      * Handle API exceptions.
-     *
-     * @param \Throwable $e
-     * @return void
      */
     protected function handleException(\Throwable $e): void
     {
