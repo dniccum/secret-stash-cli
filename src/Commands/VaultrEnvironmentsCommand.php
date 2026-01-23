@@ -14,7 +14,6 @@ class VaultrEnvironmentsCommand extends BasicCommand
 {
     protected $signature = 'vaultr:environments
                             {action? : The action to perform (list, create)}
-                            {--application= : Application ID}
                             {--name= : Name of the environment to create}
                             {--slug= : The environment slug (used to reference the environment in your application configuration)}
                             {--type= : Environment type for create action (local, development, production)}';
