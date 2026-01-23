@@ -3,6 +3,8 @@
 namespace Dniccum\Vaultr;
 
 use Dniccum\Vaultr\Crypto\CryptoHelper;
+use Dniccum\Vaultr\Exceptions\ApiToken\InvalidApiToken;
+use Dniccum\Vaultr\Exceptions\ApiToken\MissingApiToken;
 use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
@@ -50,6 +52,7 @@ class VaultrClient
      */
     public function get(string $endpoint, array $query = []): array
     {
+        /** @phpstan-ignore-next-line */
         try {
             $response = $this->client->get($endpoint, [
                 'query' => $query,
@@ -57,7 +60,7 @@ class VaultrClient
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
+            $this->handleException($e);
         }
     }
 
@@ -66,6 +69,7 @@ class VaultrClient
      */
     public function post(string $endpoint, array $data = []): array
     {
+        /** @phpstan-ignore-next-line */
         try {
             $response = $this->client->post($endpoint, [
                 'json' => $data,
@@ -73,7 +77,7 @@ class VaultrClient
 
             return json_decode($response->getBody()->getContents(), true);
         } catch (GuzzleException $e) {
-            throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
+            $this->handleException($e);
         }
     }
 
@@ -83,12 +87,29 @@ class VaultrClient
     protected function getAuthHeaders(): array
     {
         if (! $this->apiToken) {
-            throw new \RuntimeException('API token is not configured. Please set VAULTR_API_TOKEN in your .env file.');
+            throw new MissingApiToken;
         }
 
         return [
             'Authorization' => 'Bearer '.$this->apiToken,
         ];
+    }
+
+    /**
+     * Handle API exceptions.
+     *
+     * @param \Throwable $e
+     * @return void
+     */
+    protected function handleException(\Throwable $e): void
+    {
+        if ($e->getCode() === 401 || $e->getCode() === 403) {
+            throw new InvalidApiToken(
+                code: $e->getCode(),
+                previous: $e,
+            );
+        }
+        throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
     }
 
     /**
