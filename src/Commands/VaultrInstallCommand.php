@@ -24,7 +24,6 @@ class VaultrInstallCommand extends BasicCommand
     {
         if (confirm(
             label: 'Would you like to publish the Vaultr config file?',
-            default: true
         )) {
             $this->call('vendor:publish', [
                 '--tag' => 'vaultr-config',
@@ -33,9 +32,8 @@ class VaultrInstallCommand extends BasicCommand
 
         $this->setEnvironment();
 
-        $this->callSilently('vaultr:keys', [
-            'action' => 'generate',
-            '--environment' => $this->environmentSlug,
+        $this->call('vaultr:keys', [
+            'action' => 'init',
         ]);
 
         info('Vaultr has been successfully initialized!');
