@@ -381,4 +381,69 @@ class VaultrClient
             'payload' => $payload,
         ]);
     }
+
+    /**
+     * Get current user's keys (public key + encrypted private key).
+     */
+    public function getUserKeys(): array
+    {
+        return $this->get('user/keys');
+    }
+
+    /**
+     * Store/update current user's keys.
+     */
+    public function storeUserKeys(string $publicKey, array $privateKeyPayload): array
+    {
+        return $this->post('user/keys', [
+            'public_key' => $publicKey,
+            'private_key_payload' => $privateKeyPayload,
+        ]);
+    }
+
+    /**
+     * Get current user's envelope for an environment.
+     */
+    public function getEnvironmentEnvelope(string $environmentId): array
+    {
+        return $this->get("environments/{$environmentId}/envelope");
+    }
+
+    /**
+     * Store/update current user's envelope for an environment.
+     */
+    public function storeEnvironmentEnvelope(string $environmentId, array $envelope): array
+    {
+        return $this->post("environments/{$environmentId}/envelope", [
+            'envelope' => $envelope,
+        ]);
+    }
+
+    /**
+     * Get all user envelopes for an environment (shows who has access).
+     */
+    public function getEnvironmentEnvelopes(string $environmentId): array
+    {
+        return $this->get("environments/{$environmentId}/envelopes");
+    }
+
+    /**
+     * Get organization members with their public keys.
+     */
+    public function getOrganizationMembers(string $organizationId): array
+    {
+        return $this->get("organizations/{$organizationId}/members");
+    }
+
+    /**
+     * Bulk create/update envelopes for multiple users (for sharing).
+     *
+     * @param  array  $envelopes  Array of ['user_id' => int, 'envelope' => array]
+     */
+    public function storeBulkEnvironmentEnvelopes(string $environmentId, array $envelopes): array
+    {
+        return $this->post("environments/{$environmentId}/envelopes", [
+            'envelopes' => $envelopes,
+        ]);
+    }
 }
