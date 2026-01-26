@@ -9,10 +9,42 @@ it('skips variables with VAULTR_ prefix when pushing', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_NAME=VaultrApp\nVAULTR_API_TOKEN=secret_token\nDB_PASSWORD=password123\nVAULTR_URL=https://vaultr.io");
 
-    $this->mock(VaultrClient::class, function ($mock) {
+    // Create a dummy user key file
+    $homeDir = sys_get_temp_dir().'/vaultr_test_home';
+    if (! file_exists($homeDir)) {
+        mkdir($homeDir, 0777, true);
+    }
+    $keysFile = $homeDir.'/.vaultr/user_key.json';
+    if (! file_exists(dirname($keysFile))) {
+        mkdir(dirname($keysFile), 0777, true);
+    }
+
+    // Generate real RSA key pair for testing
+    $res = openssl_pkey_new([
+        "private_key_bits" => 2048,
+        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($res, $privateKey);
+    $publicKeyDetails = openssl_pkey_get_details($res);
+    $publicKey = $publicKeyDetails["key"];
+
+    $password = "password";
+    $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
+    File::put($keysFile, json_encode($payload));
+
+    $this->mock(VaultrClient::class, function ($mock) use ($publicKey) {
         $mock->shouldReceive('getEnvironments')
+            ->twice()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+
+        // Generate a real envelope using the public key
+        $dek = str_repeat('a', 32);
+        $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
+
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->with('env_123')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing']]]);
+            ->andReturn(['data' => ['envelope' => $envelope]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
         $mock->shouldReceive('createVariable')
@@ -23,34 +55,13 @@ it('skips variables with VAULTR_ prefix when pushing', function () {
             ->andReturn([]);
     });
 
-    // Mock CryptoHelper to return a fake payload
-    // Note: VaultrVariablesCommand uses CryptoHelper::aesGcmEncrypt
-    // We don't necessarily need to mock the static method if it works,
-    // but we need to ensure the key is available.
-
-    // We'll mock the home directory for keys.json if needed,
-    // or just rely on the fact that we can mock the behavior if it's called.
-    // However, the command calls static methods.
-
-    // Create a dummy key file
-    $homeDir = sys_get_temp_dir().'/vaultr_test_home';
-    if (! file_exists($homeDir)) {
-        mkdir($homeDir, 0777, true);
-    }
-    $keysFile = $homeDir.'/.vaultr/keys.json';
-    if (! file_exists(dirname($keysFile))) {
-        mkdir(dirname($keysFile), 0777, true);
-    }
-
-    $fakeKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; // 32 bytes
-    File::put($keysFile, json_encode(['testing' => CryptoHelper::base64urlEncode($fakeKey)]));
-
     // Set HOME env var for the command to find the keys
     $oldHome = $_SERVER['HOME'] ?? null;
     $_SERVER['HOME'] = $homeDir;
 
     // Act & Assert
     $this->artisan("vaultr:variables push --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Enter your private key password', 'password')
         ->expectsQuestion('Push 2 variable(s) to your Vaultr application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -78,10 +89,42 @@ DB_PASSWORD=password123
 EOD;
     File::put($tempEnv, $envContent);
 
-    $this->mock(VaultrClient::class, function ($mock) {
+    // Create a dummy user key file
+    $homeDir = sys_get_temp_dir().'/vaultr_test_home_commented';
+    if (! file_exists($homeDir)) {
+        mkdir($homeDir, 0777, true);
+    }
+    $keysFile = $homeDir.'/.vaultr/user_key.json';
+    if (! file_exists(dirname($keysFile))) {
+        mkdir(dirname($keysFile), 0777, true);
+    }
+
+    // Generate real RSA key pair for testing
+    $res = openssl_pkey_new([
+        "private_key_bits" => 2048,
+        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($res, $privateKey);
+    $publicKeyDetails = openssl_pkey_get_details($res);
+    $publicKey = $publicKeyDetails["key"];
+
+    $password = "password";
+    $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
+    File::put($keysFile, json_encode($payload));
+
+    $this->mock(VaultrClient::class, function ($mock) use ($publicKey) {
         $mock->shouldReceive('getEnvironments')
+            ->twice()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+
+        // Generate a real envelope using the public key
+        $dek = str_repeat('a', 32);
+        $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
+
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->with('env_123')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing']]]);
+            ->andReturn(['data' => ['envelope' => $envelope]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
         $mock->shouldReceive('createVariable')
@@ -92,25 +135,13 @@ EOD;
             ->andReturn([]);
     });
 
-    // Create a dummy key file
-    $homeDir = sys_get_temp_dir().'/vaultr_test_home_commented';
-    if (! file_exists($homeDir)) {
-        mkdir($homeDir, 0777, true);
-    }
-    $keysFile = $homeDir.'/.vaultr/keys.json';
-    if (! file_exists(dirname($keysFile))) {
-        mkdir(dirname($keysFile), 0777, true);
-    }
-
-    $fakeKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; // 32 bytes
-    File::put($keysFile, json_encode(['testing' => CryptoHelper::base64urlEncode($fakeKey)]));
-
     // Set HOME env var for the command to find the keys
     $oldHome = $_SERVER['HOME'] ?? null;
     $_SERVER['HOME'] = $homeDir;
 
     // Act & Assert
     $this->artisan("vaultr:variables push --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Enter your private key password', 'password')
         ->expectsQuestion('Push 2 variable(s) to your Vaultr application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -136,10 +167,42 @@ WITH_HASH="value#with#hash"
 EOD;
     File::put($tempEnv, $envContent);
 
-    $this->mock(VaultrClient::class, function ($mock) {
+    // Create a dummy key file
+    $homeDir = sys_get_temp_dir().'/vaultr_test_home_commented_2';
+    if (! file_exists($homeDir)) {
+        mkdir($homeDir, 0777, true);
+    }
+    $keysFile = $homeDir.'/.vaultr/user_key.json';
+    if (! file_exists(dirname($keysFile))) {
+        mkdir(dirname($keysFile), 0777, true);
+    }
+
+    // Generate real RSA key pair for testing
+    $res = openssl_pkey_new([
+        "private_key_bits" => 2048,
+        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($res, $privateKey);
+    $publicKeyDetails = openssl_pkey_get_details($res);
+    $publicKey = $publicKeyDetails["key"];
+
+    $password = "password";
+    $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
+    File::put($keysFile, json_encode($payload));
+
+    $this->mock(VaultrClient::class, function ($mock) use ($publicKey) {
         $mock->shouldReceive('getEnvironments')
+            ->twice()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+
+        // Generate a real envelope using the public key
+        $dek = str_repeat('a', 32);
+        $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
+
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->with('env_123')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing']]]);
+            ->andReturn(['data' => ['envelope' => $envelope]]);
 
         // Should only be called for NOT_COMMENTED and WITH_HASH
         $mock->shouldReceive('createVariable')
@@ -150,25 +213,13 @@ EOD;
             ->andReturn([]);
     });
 
-    // Create a dummy key file
-    $homeDir = sys_get_temp_dir().'/vaultr_test_home_commented_2';
-    if (! file_exists($homeDir)) {
-        mkdir($homeDir, 0777, true);
-    }
-    $keysFile = $homeDir.'/.vaultr/keys.json';
-    if (! file_exists(dirname($keysFile))) {
-        mkdir(dirname($keysFile), 0777, true);
-    }
-
-    $fakeKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; // 32 bytes
-    File::put($keysFile, json_encode(['testing' => CryptoHelper::base64urlEncode($fakeKey)]));
-
     // Set HOME env var for the command to find the keys
     $oldHome = $_SERVER['HOME'] ?? null;
     $_SERVER['HOME'] = $homeDir;
 
     // Act & Assert
     $this->artisan("vaultr:variables push --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Enter your private key password', 'password')
         ->expectsQuestion('Push 2 variable(s) to your Vaultr application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -192,10 +243,42 @@ it('skips variables defined in ignored_variables config when pushing', function 
     // Mock config
     config(['vaultr.ignored_variables' => ['IGNORE_ME']]);
 
-    $this->mock(VaultrClient::class, function ($mock) {
+    // Create a dummy key file
+    $homeDir = sys_get_temp_dir().'/vaultr_test_home_ignored';
+    if (! file_exists($homeDir)) {
+        mkdir($homeDir, 0777, true);
+    }
+    $keysFile = $homeDir.'/.vaultr/user_key.json';
+    if (! file_exists(dirname($keysFile))) {
+        mkdir(dirname($keysFile), 0777, true);
+    }
+
+    // Generate real RSA key pair for testing
+    $res = openssl_pkey_new([
+        "private_key_bits" => 2048,
+        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($res, $privateKey);
+    $publicKeyDetails = openssl_pkey_get_details($res);
+    $publicKey = $publicKeyDetails["key"];
+
+    $password = "password";
+    $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
+    File::put($keysFile, json_encode($payload));
+
+    $this->mock(VaultrClient::class, function ($mock) use ($publicKey) {
         $mock->shouldReceive('getEnvironments')
+            ->twice()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+
+        // Generate a real envelope using the public key
+        $dek = str_repeat('a', 32);
+        $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
+
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->with('env_123')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing']]]);
+            ->andReturn(['data' => ['envelope' => $envelope]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
         $mock->shouldReceive('createVariable')
@@ -206,24 +289,12 @@ it('skips variables defined in ignored_variables config when pushing', function 
             ->andReturn([]);
     });
 
-    // Create a dummy key file
-    $homeDir = sys_get_temp_dir().'/vaultr_test_home_ignored';
-    if (! file_exists($homeDir)) {
-        mkdir($homeDir, 0777, true);
-    }
-    $keysFile = $homeDir.'/.vaultr/keys.json';
-    if (! file_exists(dirname($keysFile))) {
-        mkdir(dirname($keysFile), 0777, true);
-    }
-
-    $fakeKey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; // 32 bytes
-    File::put($keysFile, json_encode(['testing' => CryptoHelper::base64urlEncode($fakeKey)]));
-
     $oldHome = $_SERVER['HOME'] ?? null;
     $_SERVER['HOME'] = $homeDir;
 
     // Act & Assert
     $this->artisan("vaultr:variables push --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Enter your private key password', 'password')
         ->expectsQuestion('Push 2 variable(s) to your Vaultr application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -247,8 +318,44 @@ it('skips variables defined in ignored_variables config when pulling', function 
     // Mock config
     config(['vaultr.ignored_variables' => ['IGNORE_ME_TOO']]);
 
-    $this->mock(VaultrClient::class, function ($mock) {
+    // Create a dummy key file
+    $homeDir = sys_get_temp_dir().'/vaultr_test_home_pull';
+    if (! file_exists($homeDir)) {
+        mkdir($homeDir, 0777, true);
+    }
+    $keysFile = $homeDir.'/.vaultr/user_key.json';
+    if (! file_exists(dirname($keysFile))) {
+        mkdir(dirname($keysFile), 0777, true);
+    }
+
+    // Generate real RSA key pair for testing
+    $res = openssl_pkey_new([
+        "private_key_bits" => 2048,
+        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+    ]);
+    openssl_pkey_export($res, $privateKey);
+    $publicKeyDetails = openssl_pkey_get_details($res);
+    $publicKey = $publicKeyDetails["key"];
+
+    $password = "password";
+    $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
+    File::put($keysFile, json_encode($payload));
+
+    $this->mock(VaultrClient::class, function ($mock) use ($publicKey) {
         $mock->makePartial();
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+
+        // Generate a real envelope using the public key
+        $dek = str_repeat('a', 32);
+        $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
+
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->with('env_123')
+            ->once()
+            ->andReturn(['data' => ['envelope' => $envelope]]);
+
         $mock->shouldReceive('getVariables')
             ->once()
             ->andReturn([
@@ -259,8 +366,12 @@ it('skips variables defined in ignored_variables config when pulling', function 
             ]);
     });
 
+    $oldHome = $_SERVER['HOME'] ?? null;
+    $_SERVER['HOME'] = $homeDir;
+
     // Act & Assert
     $this->artisan("vaultr:variables pull --application=app_123 --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Enter your private key password', 'password')
         ->expectsOutputToContain('Variables pulled successfully!')
         ->assertSuccessful();
 
@@ -270,4 +381,10 @@ it('skips variables defined in ignored_variables config when pulling', function 
 
     // Cleanup
     unlink($tempEnv);
+    File::deleteDirectory($homeDir);
+    if ($oldHome) {
+        $_SERVER['HOME'] = $oldHome;
+    } else {
+        unset($_SERVER['HOME']);
+    }
 });
