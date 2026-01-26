@@ -3,10 +3,10 @@
 namespace Dniccum\Vaultr\Commands;
 
 use Dniccum\Vaultr\Crypto\CryptoHelper;
-
 use Dniccum\Vaultr\Exceptions\Keys\PrivateKeyFailedToSave;
 use Dniccum\Vaultr\Exceptions\Keys\PrivateKeyNotFound;
 use Dniccum\Vaultr\VaultrClient;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -21,7 +21,6 @@ class VaultrKeysCommand extends BasicCommand
      * The minimum number of characters required for a password.
      *
      * @note While this is a security measure, this could be a feature to be controlled via the API.
-     * @var int
      */
     protected int $passwordLength = 8;
 

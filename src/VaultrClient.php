@@ -381,6 +381,7 @@ class VaultrClient
             'payload' => $payload,
         ]);
     }
+
     /**
      * Get current user's keys (public key + encrypted private key).
      */

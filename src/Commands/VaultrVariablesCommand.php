@@ -14,7 +14,6 @@ use function Laravel\Prompts\password;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
-use function Laravel\Prompts\text;
 
 class VaultrVariablesCommand extends BasicCommand
 {

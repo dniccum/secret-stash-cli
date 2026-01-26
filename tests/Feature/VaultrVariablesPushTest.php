@@ -21,14 +21,14 @@ it('skips variables with VAULTR_ prefix when pushing', function () {
 
     // Generate real RSA key pair for testing
     $res = openssl_pkey_new([
-        "private_key_bits" => 2048,
-        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
     ]);
     openssl_pkey_export($res, $privateKey);
     $publicKeyDetails = openssl_pkey_get_details($res);
-    $publicKey = $publicKeyDetails["key"];
+    $publicKey = $publicKeyDetails['key'];
 
-    $password = "password";
+    $password = 'password';
     $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
     File::put($keysFile, json_encode($payload));
 
@@ -101,14 +101,14 @@ EOD;
 
     // Generate real RSA key pair for testing
     $res = openssl_pkey_new([
-        "private_key_bits" => 2048,
-        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
     ]);
     openssl_pkey_export($res, $privateKey);
     $publicKeyDetails = openssl_pkey_get_details($res);
-    $publicKey = $publicKeyDetails["key"];
+    $publicKey = $publicKeyDetails['key'];
 
-    $password = "password";
+    $password = 'password';
     $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
     File::put($keysFile, json_encode($payload));
 
@@ -179,14 +179,14 @@ EOD;
 
     // Generate real RSA key pair for testing
     $res = openssl_pkey_new([
-        "private_key_bits" => 2048,
-        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
     ]);
     openssl_pkey_export($res, $privateKey);
     $publicKeyDetails = openssl_pkey_get_details($res);
-    $publicKey = $publicKeyDetails["key"];
+    $publicKey = $publicKeyDetails['key'];
 
-    $password = "password";
+    $password = 'password';
     $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
     File::put($keysFile, json_encode($payload));
 
@@ -255,14 +255,14 @@ it('skips variables defined in ignored_variables config when pushing', function 
 
     // Generate real RSA key pair for testing
     $res = openssl_pkey_new([
-        "private_key_bits" => 2048,
-        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
     ]);
     openssl_pkey_export($res, $privateKey);
     $publicKeyDetails = openssl_pkey_get_details($res);
-    $publicKey = $publicKeyDetails["key"];
+    $publicKey = $publicKeyDetails['key'];
 
-    $password = "password";
+    $password = 'password';
     $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
     File::put($keysFile, json_encode($payload));
 
@@ -330,14 +330,14 @@ it('skips variables defined in ignored_variables config when pulling', function 
 
     // Generate real RSA key pair for testing
     $res = openssl_pkey_new([
-        "private_key_bits" => 2048,
-        "private_key_type" => OPENSSL_KEYTYPE_RSA,
+        'private_key_bits' => 2048,
+        'private_key_type' => OPENSSL_KEYTYPE_RSA,
     ]);
     openssl_pkey_export($res, $privateKey);
     $publicKeyDetails = openssl_pkey_get_details($res);
-    $publicKey = $publicKeyDetails["key"];
+    $publicKey = $publicKeyDetails['key'];
 
-    $password = "password";
+    $password = 'password';
     $payload = CryptoHelper::encryptPrivateKey($privateKey, $password);
     File::put($keysFile, json_encode($payload));
 
