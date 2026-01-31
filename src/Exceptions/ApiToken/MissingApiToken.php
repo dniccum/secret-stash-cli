@@ -1,11 +1,11 @@
 <?php
 
-namespace Dniccum\Vaultr\Exceptions\ApiToken;
+namespace Dniccum\SecretStash\Exceptions\ApiToken;
 
 class MissingApiToken extends \RuntimeException
 {
     public function __construct(
-        $message = 'API token is not configured. Please set VAULTR_API_TOKEN in your .env file.',
+        $message = 'API token is not configured. Please set SECRET_STASH_API_TOKEN in your .env file.',
         protected $code = 400,
         protected ?\Throwable $previous = null
     ) {

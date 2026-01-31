@@ -1,6 +1,6 @@
 <?php
 
-namespace Dniccum\Vaultr\Exceptions;
+namespace Dniccum\SecretStash\Exceptions;
 
 class InvalidEnvironmentConfiguration extends \Exception
 {

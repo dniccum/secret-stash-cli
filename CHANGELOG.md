@@ -1,3 +1,3 @@
 # Changelog
 
-All notable changes to `vaultr-cli` will be documented in this file.
+All notable changes to `secret-stash-cli` will be documented in this file.

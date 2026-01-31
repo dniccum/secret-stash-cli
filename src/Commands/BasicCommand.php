@@ -1,8 +1,8 @@
 <?php
 
-namespace Dniccum\Vaultr\Commands;
+namespace Dniccum\SecretStash\Commands;
 
-use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
+use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Illuminate\Console\Command;
 
 use function Laravel\Prompts\text;
@@ -19,7 +19,7 @@ abstract class BasicCommand extends Command
      */
     protected function setEnvironment(): void
     {
-        $this->applicationId = $this->hasOption('application') && $this->option('application') ? $this->option('application') : (config('vaultr.application_id') ?? '');
+        $this->applicationId = $this->hasOption('application') && $this->option('application') ? $this->option('application') : (config('secret-stash.application_id') ?? '');
         $this->environmentSlug = $this->hasOption('environment') && $this->option('environment') ? $this->option('environment') : (config('app.env') ?? '');
 
         if (empty($this->applicationId)) {

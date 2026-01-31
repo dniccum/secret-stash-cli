@@ -1,6 +1,6 @@
 <?php
 
-namespace Dniccum\Vaultr\Exceptions\Environments;
+namespace Dniccum\SecretStash\Exceptions\Environments;
 
 class NoEnvironmentsFound extends \RuntimeException
 {

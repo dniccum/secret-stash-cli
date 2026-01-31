@@ -1,15 +1,15 @@
 <?php
 
-namespace Dniccum\Vaultr;
+namespace Dniccum\SecretStash;
 
-use Dniccum\Vaultr\Crypto\CryptoHelper;
-use Dniccum\Vaultr\Exceptions\ApiToken\InvalidApiToken;
-use Dniccum\Vaultr\Exceptions\ApiToken\MissingApiToken;
-use Dniccum\Vaultr\Exceptions\InvalidEnvironmentConfiguration;
+use Dniccum\SecretStash\Crypto\CryptoHelper;
+use Dniccum\SecretStash\Exceptions\ApiToken\InvalidApiToken;
+use Dniccum\SecretStash\Exceptions\ApiToken\MissingApiToken;
+use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
-class VaultrClient
+class SecretStashClient
 {
     protected Client $client;
 
@@ -25,16 +25,16 @@ class VaultrClient
      */
     public function __construct(?string $apiUrl = null, ?string $apiToken = null, ?string $encryptionKey = null)
     {
-        $this->apiUrl = $apiUrl ? rtrim($apiUrl, '/') : config('vaultr.api_url');
-        $this->apiToken = $apiToken ?? config('vaultr.api_token');
+        $this->apiUrl = $apiUrl ? rtrim($apiUrl, '/') : config('secret-stash.api_url');
+        $this->apiToken = $apiToken ?? config('secret-stash.api_token');
         $this->encryptionKey = $encryptionKey;
 
         if (empty($this->apiUrl)) {
-            throw new InvalidEnvironmentConfiguration('API url is not configured. Please set VAULTR_API_URL in your .env file.');
+            throw new InvalidEnvironmentConfiguration('API url is not configured. Please set SECRET_STASH_API_URL in your .env file.');
         }
 
         if (empty($this->apiToken)) {
-            throw new InvalidEnvironmentConfiguration('API token is not configured. Please set VAULTR_API_TOKEN in your .env file.');
+            throw new InvalidEnvironmentConfiguration('API token is not configured. Please set SECRET_STASH_API_TOKEN in your .env file.');
         }
 
         $this->client = new Client([
@@ -190,7 +190,7 @@ class VaultrClient
         }
 
         $updatedKeys = [];
-        $ignoredVariables = config('vaultr.ignored_variables', []);
+        $ignoredVariables = config('secret-stash.ignored_variables', []);
 
         foreach ($kv as $key => $value) {
             if (in_array($key, $ignoredVariables, true)) {
@@ -222,7 +222,7 @@ class VaultrClient
     /**
      * Convenience method: fetch variables via API and immediately sync to .env.
      *
-     * @note Keep this method for now for future compatibility with VaultrKeysCommand.
+     * @note Keep this method for now for future compatibility with SecretStashKeysCommand.
      */
     public function syncEnvFileFromApi(string $applicationId, string $environmentId, ?string $envPath = null, ?string $encryptionKey = null): void
     {

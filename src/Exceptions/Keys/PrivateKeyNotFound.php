@@ -1,11 +1,11 @@
 <?php
 
-namespace Dniccum\Vaultr\Exceptions\Keys;
+namespace Dniccum\SecretStash\Exceptions\Keys;
 
 class PrivateKeyNotFound extends \RuntimeException
 {
     public function __construct(
-        $message = 'Private key not found. Run "vaultr:keys init" first.',
+        $message = 'Private key not found. Run "secret-stash:keys init" first.',
         protected $code = 400,
         protected ?\Throwable $previous = null
     ) {

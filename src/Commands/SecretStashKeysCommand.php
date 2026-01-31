@@ -1,11 +1,11 @@
 <?php
 
-namespace Dniccum\Vaultr\Commands;
+namespace Dniccum\SecretStash\Commands;
 
-use Dniccum\Vaultr\Crypto\CryptoHelper;
-use Dniccum\Vaultr\Exceptions\Keys\PrivateKeyFailedToSave;
-use Dniccum\Vaultr\Exceptions\Keys\PrivateKeyNotFound;
-use Dniccum\Vaultr\VaultrClient;
+use Dniccum\SecretStash\Crypto\CryptoHelper;
+use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyFailedToSave;
+use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyNotFound;
+use Dniccum\SecretStash\SecretStashClient;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
@@ -15,7 +15,7 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\warning;
 
-class VaultrKeysCommand extends BasicCommand
+class SecretStashKeysCommand extends BasicCommand
 {
     /**
      * The minimum number of characters required for a password.
@@ -24,7 +24,7 @@ class VaultrKeysCommand extends BasicCommand
      */
     protected int $passwordLength = 8;
 
-    protected $signature = 'vaultr:keys
+    protected $signature = 'secret-stash:keys
                             {action? : The action to perform (status, init, sync)}';
 
     protected $description = 'Manage your user encryption keys (RSA key pair) for the CLI';
@@ -37,7 +37,7 @@ class VaultrKeysCommand extends BasicCommand
     {
         parent::__construct();
         $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
-        $this->keysDir = $homeDir.'/.vaultr';
+        $this->keysDir = $homeDir.'/.secret-stash';
         $this->privateKeyFile = $this->keysDir.'/user_key.json';
 
         if (! is_dir($this->keysDir)) {
@@ -45,7 +45,7 @@ class VaultrKeysCommand extends BasicCommand
         }
     }
 
-    public function handle(VaultrClient $client): int
+    public function handle(SecretStashClient $client): int
     {
         $action = $this->argument('action') ?? select(
             'What would you like to do?',
@@ -68,7 +68,7 @@ class VaultrKeysCommand extends BasicCommand
         }
     }
 
-    protected function showStatus(VaultrClient $client): int
+    protected function showStatus(SecretStashClient $client): int
     {
         $this->newLine();
         $this->line('<fg=cyan;options=bold>Key Status</>');
@@ -100,13 +100,13 @@ class VaultrKeysCommand extends BasicCommand
         $this->newLine();
 
         if (! $localKey) {
-            info('Run "vaultr:keys init" to generate your encryption keys.');
+            info('Run "secret-stash:keys init" to generate your encryption keys.');
         }
 
         return self::SUCCESS;
     }
 
-    protected function initializeKeys(VaultrClient $client): int
+    protected function initializeKeys(SecretStashClient $client): int
     {
         // Check if keys already exist locally
         if ($this->hasLocalPrivateKey()) {
@@ -172,7 +172,7 @@ class VaultrKeysCommand extends BasicCommand
             info('Keys uploaded to server successfully!');
         } catch (\Exception $e) {
             error('Failed to upload keys to server: '.$e->getMessage());
-            warning('Your keys are saved locally but not on the server. Try running "vaultr:keys sync" later.');
+            warning('Your keys are saved locally but not on the server. Try running "secret-stash:keys sync" later.');
 
             return self::FAILURE;
         }
@@ -185,7 +185,7 @@ class VaultrKeysCommand extends BasicCommand
         return self::SUCCESS;
     }
 
-    protected function syncFromServer(VaultrClient $client): int
+    protected function syncFromServer(SecretStashClient $client): int
     {
         $this->newLine();
         info('Fetching keys from server...');
@@ -195,7 +195,7 @@ class VaultrKeysCommand extends BasicCommand
             $serverKey = $response['data'] ?? null;
 
             if (! $serverKey || ! $serverKey['public_key']) {
-                error('No keys found on server. Run "vaultr:keys init" first.');
+                error('No keys found on server. Run "secret-stash:keys init" first.');
 
                 return self::FAILURE;
             }

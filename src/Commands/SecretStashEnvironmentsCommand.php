@@ -1,8 +1,8 @@
 <?php
 
-namespace Dniccum\Vaultr\Commands;
+namespace Dniccum\SecretStash\Commands;
 
-use Dniccum\Vaultr\VaultrClient;
+use Dniccum\SecretStash\SecretStashClient;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -10,9 +10,9 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 
-class VaultrEnvironmentsCommand extends BasicCommand
+class SecretStashEnvironmentsCommand extends BasicCommand
 {
-    protected $signature = 'vaultr:environments
+    protected $signature = 'secret-stash:environments
                             {action? : The action to perform (list, create)}
                             {--application= : Application ID}
                             {--name= : Name of the environment to create}
@@ -20,12 +20,12 @@ class VaultrEnvironmentsCommand extends BasicCommand
                             {--type= : Environment type for create action (local, development, production)}';
 
     protected $aliases = [
-        'vaultr:env',
+        'secret-stash:env',
     ];
 
-    protected $description = 'Manage Vaultr environments';
+    protected $description = 'Manage SecretStash environments';
 
-    public function handle(VaultrClient $client): int
+    public function handle(SecretStashClient $client): int
     {
         $action = $this->argument('action') ?? 'list';
 
@@ -46,7 +46,7 @@ class VaultrEnvironmentsCommand extends BasicCommand
         }
     }
 
-    protected function listEnvironments(VaultrClient $client): void
+    protected function listEnvironments(SecretStashClient $client): void
     {
         info('Fetching environments...');
 
@@ -82,7 +82,7 @@ class VaultrEnvironmentsCommand extends BasicCommand
         );
     }
 
-    protected function createEnvironment(VaultrClient $client): void
+    protected function createEnvironment(SecretStashClient $client): void
     {
         $name = $this->option('name') ?? text(
             label: 'What is the environment name?',

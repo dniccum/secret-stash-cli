@@ -1,15 +1,15 @@
 {
-    "name": "dniccum/vaultr-cli",
-    "description": "A PHP-based Composer package to interact with the Vaultr environment variable service.",
+    "name": "dniccum/secret-stash-cli",
+    "description": "A PHP-based Composer package to interact with the SecretStash environment variable service.",
     "keywords": [
-        "vaultr",
+        "secret-stash",
         "dniccum",
         "environment",
         "variables",
         "laravel",
-        "vaultr-cli"
+        "secret-stash-cli"
     ],
-    "homepage": "https://github.com/dniccum/vaultr-cli",
+    "homepage": "https://github.com/dniccum/secret-stash-cli",
     "license": "MIT",
     "authors": [
         {
@@ -43,14 +43,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Dniccum\\Vaultr\\": "src/",
-            "Dniccum\\Vaultr\\Database\\Factories\\": "database/factories/"
+            "Dniccum\\SecretStash\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Dniccum\\Vaultr\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/"
+            "Dniccum\\SecretStash\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -71,10 +69,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Dniccum\\Vaultr\\VaultrServiceProvider"
+                "Dniccum\\SecretStash\\SecretStashServiceProvider"
             ],
             "aliases": {
-                "Vaultr": "Dniccum\\Vaultr\\Facades\\Vaultr"
+                "SecretStash": "Dniccum\\SecretStash\\Facades\\SecretStash"
             }
         }
     },

@@ -1,21 +1,21 @@
 <?php
 
-namespace Dniccum\Vaultr\Commands;
+namespace Dniccum\SecretStash\Commands;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 
-class VaultrInstallCommand extends BasicCommand
+class SecretStashInstallCommand extends BasicCommand
 {
     /**
      * @var string
      */
-    protected $signature = 'vaultr:install';
+    protected $signature = 'secret-stash:install';
 
     /**
      * @var string
      */
-    protected $description = 'Install the Vaultr CLI';
+    protected $description = 'Install the SecretStash CLI';
 
     /**
      * Execute the console command.
@@ -23,20 +23,20 @@ class VaultrInstallCommand extends BasicCommand
     public function handle(): int
     {
         if (confirm(
-            label: 'Would you like to publish the Vaultr config file?',
+            label: 'Would you like to publish the SecretStash config file?',
         )) {
             $this->call('vendor:publish', [
-                '--tag' => 'vaultr-config',
+                '--tag' => 'secret-stash-config',
             ]);
         }
 
         $this->setEnvironment();
 
-        $this->call('vaultr:keys', [
+        $this->call('secret-stash:keys', [
             'action' => 'init',
         ]);
 
-        info('Vaultr has been successfully initialized!');
+        info('SecretStash has been successfully initialized!');
 
         return 0;
     }

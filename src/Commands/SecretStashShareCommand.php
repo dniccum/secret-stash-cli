@@ -1,9 +1,9 @@
 <?php
 
-namespace Dniccum\Vaultr\Commands;
+namespace Dniccum\SecretStash\Commands;
 
-use Dniccum\Vaultr\Crypto\CryptoHelper;
-use Dniccum\Vaultr\VaultrClient;
+use Dniccum\SecretStash\Crypto\CryptoHelper;
+use Dniccum\SecretStash\SecretStashClient;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
@@ -13,16 +13,16 @@ use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
-class VaultrShareCommand extends BasicCommand
+class SecretStashShareCommand extends BasicCommand
 {
-    protected $signature = 'vaultr:share
+    protected $signature = 'secret-stash:share
                             {--organization= : Organization ID}
                             {--application= : Application ID}
                             {--environment= : Environment ID}';
 
     protected $description = 'Share an environment with team members';
 
-    public function handle(VaultrClient $client, VaultrKeysCommand $keysCommand): int
+    public function handle(SecretStashClient $client, SecretStashKeysCommand $keysCommand): int
     {
         try {
             $this->setEnvironment();
@@ -168,13 +168,13 @@ class VaultrShareCommand extends BasicCommand
         $applicationId = $this->option('application');
 
         if (empty($applicationId)) {
-            $applicationId = config('vaultr.application_id');
+            $applicationId = config('secret-stash.application_id');
         }
 
         return $applicationId;
     }
 
-    protected function getEnvironmentId(VaultrClient $client): string
+    protected function getEnvironmentId(SecretStashClient $client): string
     {
         $environmentId = $this->environmentSlug ?? $this->option('environment');
 

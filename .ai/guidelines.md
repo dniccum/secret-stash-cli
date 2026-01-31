@@ -1,11 +1,11 @@
-<vaultr-package-guidelines>
-# Vaultr CLI Guidelines
+<secret-stash-package-guidelines>
+# SecretStash CLI Guidelines
 
 === foundation rules ===
 
 ## Foundational Context
 
-This is a package that allows users to interact with the Vaultr cloud application within the context of their own Laravel/PHP application. This package provides a series of command line interface commands to push, pull, and view any application-secrets they have stored in their organization's Vaultr account.
+This is a package that allows users to interact with the SecretStash cloud application within the context of their own Laravel/PHP application. This package provides a series of command line interface commands to push, pull, and view any application-secrets they have stored in their organization's SecretStash account.
 
 - php - 8.4.14
 - laravel/pint (PINT) - v1
@@ -14,7 +14,7 @@ This is a package that allows users to interact with the Vaultr cloud applicatio
 
 ## Conventions
 - **Contract First**: Always define a PHP interface in `src/Contracts` before implementing a new driver or service.
-- **Service Container**: Bind all Vaultr services in the `VaultrServiceProvider`. Avoid using `new` for classes that require configuration.
+- **Service Container**: Bind all SecretStash services in the `SecretStashServiceProvider`. Avoid using `new` for classes that require configuration.
 - **Zero-Dependency Core**: Keep the core secret-fetching logic free of Laravel-specific helpers where possible, allowing for easier unit testing.
 
 ## Security & Secrets
@@ -23,17 +23,17 @@ This is a package that allows users to interact with the Vaultr cloud applicatio
 - **HttpClient**: Use Laravel's `Http` client facade with a defined `User-Agent` identifying the package version.
 
 ## Testing Standards
-- **Mocking Vaultr API**: Use `Http::fake()` in Feature tests to simulate Vaultr API responses. Never make real API calls in the test suite.
+- **Mocking SecretStash API**: Use `Http::fake()` in Feature tests to simulate SecretStash API responses. Never make real API calls in the test suite.
 - **Contract Tests**: Ensure every implementation of `SecretProvider` passes the same set of Pest expectation tests.
 - **Workbench**: Use `orchestra/testbench` to verify that the package integrates correctly with the Laravel container.
 
 ## Artisan Commands
-- **Namespacing**: All package commands must be prefixed with `vaultr:`, for example: `vaultr:fetch` or `vaultr:status`.
+- **Namespacing**: All package commands must be prefixed with `secret-stash:`, for example: `secret-stash:fetch` or `secret-stash:status`.
 - **Output**: Use `laravel/prompts` for interactive commands to maintain a modern CLI experience.
 
 ## Configuration
-- **Environment Variables**: Use `VAULTR_` prefix for all package-specific environment variables (e.g., `VAULTR_API_KEY`).
-- **Config File**: The default config should be published via `php artisan vendor:publish --tag=vaultr-config`.
+- **Environment Variables**: Use `SECRET_STASH_` prefix for all package-specific environment variables (e.g., `SECRET_STASH_API_KEY`).
+- **Config File**: The default config should be published via `php artisan vendor:publish --tag=secret-stash-config`.
 
 === pint/core rules ===
 
@@ -148,4 +148,4 @@ $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 
 - Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
 - Run the minimum number of tests needed to ensure code quality and speed. Use `./vendor/bin/pest` with a specific filename or filter.
-</vaultr-package-guidelines>
+</secret-stash-package-guidelines>
