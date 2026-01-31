@@ -1,6 +1,6 @@
 <?php
 
-namespace Dniccum\Vaultr\Enums;
+namespace Dniccum\SecretStash\Enums;
 
 enum EnvironmentType: string
 {

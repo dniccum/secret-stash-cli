@@ -1,14 +1,14 @@
 # Contributing
 
-Thank you for considering contributing to the Vaultr CLI! To maintain a high standard for our code and ensure a smooth process, please follow these guidelines.
+Thank you for considering contributing to the SecretStash CLI! To maintain a high standard for our code and ensure a smooth process, please follow these guidelines.
 
 ## Code of Conduct
 
-Help us keep the Vaultr community open and inclusive. Please be kind and respectful in all interactions.
+Help us keep the SecretStash community open and inclusive. Please be kind and respectful in all interactions.
 
 ## Bug Reports
 
-If you discover a bug, please [open an issue](https://github.com/dniccum/vaultr-cli/issues) on GitHub. To help us fix it quickly, please include:
+If you discover a bug, please [open an issue](https://github.com/dniccum/secret-stash-cli/issues) on GitHub. To help us fix it quickly, please include:
 - A clear, descriptive title.
 - Steps to reproduce the issue.
 - Your environment details (PHP version, Laravel version, OS).
@@ -46,7 +46,7 @@ This package leverages several modern PHP and Laravel features:
 
 ## Thank You!
 
-Your contributions help make Vaultr CLI a better tool for the entire Laravel community. We appreciate your time and effort!
+Your contributions help make SecretStash CLI a better tool for the entire Laravel community. We appreciate your time and effort!
 
 ---
 

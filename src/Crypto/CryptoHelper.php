@@ -1,6 +1,6 @@
 <?php
 
-namespace Dniccum\Vaultr\Crypto;
+namespace Dniccum\SecretStash\Crypto;
 
 class CryptoHelper
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Dniccum\Vaultr\Exceptions\Keys;
+namespace Dniccum\SecretStash\Exceptions\Keys;
 
 class PrivateKeyFailedToSave extends \RuntimeException
 {

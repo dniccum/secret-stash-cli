@@ -1,8 +1,8 @@
 <?php
 
-namespace Dniccum\Vaultr\Tests;
+namespace Dniccum\SecretStash\Tests;
 
-use Dniccum\Vaultr\VaultrServiceProvider;
+use Dniccum\SecretStash\SecretStashServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Laravel\Prompts\Prompt;
 use Orchestra\Testbench\TestCase as Orchestra;
@@ -16,14 +16,14 @@ class TestCase extends Orchestra
         Prompt::fallbackWhen(true);
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Dniccum\\Vaultr\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName) => 'Dniccum\\SecretStash\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
     }
 
     protected function getPackageProviders($app): array
     {
         return [
-            VaultrServiceProvider::class,
+            SecretStashServiceProvider::class,
         ];
     }
 
@@ -33,10 +33,14 @@ class TestCase extends Orchestra
     protected function defineEnvironment($app): void
     {
         // Load package config so keys exist, then override the ones we need for commands
-        $app['config']->set('vaultr', require __DIR__.'/../config/vaultr.php');
+        $app['config']->set('secret-stash', require __DIR__.'/../config/secret-stash.php');
+
+        // Set mandatory API credentials for tests to avoid InvalidEnvironmentConfiguration
+        $app['config']->set('secret-stash.api_url', 'https://secret-stash.app');
+        $app['config']->set('secret-stash.api_token', 'test-token');
 
         // Provide a default application id so commands don't prompt
-        $app['config']->set('vaultr.application_id', 'app_123');
+        $app['config']->set('secret-stash.application_id', 'app_123');
 
         // Typical framework config used by console testing
         $app['config']->set('app.env', 'testing');

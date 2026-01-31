@@ -1,9 +1,9 @@
 <?php
 
-use Dniccum\Vaultr\VaultrClient;
+use Dniccum\SecretStash\SecretStashClient;
 
 it('can run the environments:list command and display results', function () {
-    $this->mock(VaultrClient::class, function ($mock) {
+    $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('getEnvironments')
             ->once()
             ->andReturn([
@@ -15,7 +15,7 @@ it('can run the environments:list command and display results', function () {
     });
 
     // Act & Assert
-    $this->artisan('vaultr:environments list')
+    $this->artisan('secret-stash:environments list')
         ->expectsOutputToContain('Fetching environments...')
         ->expectsOutputToContain('Environments')
         ->expectsOutputToContain('Found 2 environment(s)')
@@ -23,7 +23,7 @@ it('can run the environments:list command and display results', function () {
 });
 
 it('can create an environment from the environments:create command and show success', function () {
-    $this->mock(VaultrClient::class, function ($mock) {
+    $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('createEnvironment')
             ->once()
             ->andReturn([
@@ -32,7 +32,7 @@ it('can create an environment from the environments:create command and show succ
     });
 
     // Act & Assert
-    $this->artisan('vaultr:environments create')
+    $this->artisan('secret-stash:environments create')
         ->expectsQuestion('What is the environment name?', 'Production')
         ->expectsQuestion('What should the environment slug be?', 'production')
         ->expectsQuestion('What type of environment is this?', 'production')
@@ -45,14 +45,14 @@ it('can create an environment from the environments:create command and show succ
 });
 
 it('throws an error if it cannot find the application based on option', function () {
-    $this->mock(VaultrClient::class, function ($mock) {
+    $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('getEnvironments')
             ->once()
             ->andThrow(new \Exception);
     });
 
     // Act & Assert
-    $this->artisan('vaultr:environments list --application=app_098')
+    $this->artisan('secret-stash:environments list --application=app_098')
         ->expectsOutputToContain('Fetching environments...')
         ->assertFailed();
 });
