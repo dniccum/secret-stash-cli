@@ -53,7 +53,7 @@ class SecretStashVariablesCommand extends BasicCommand
      */
     protected function listVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->getEnvironmentId($client);
         $key = $this->getEnvironmentKey($environmentId, $client);
         info('Fetching variables...');
 
@@ -97,7 +97,7 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function pullVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->getEnvironmentId($client);
         $key = $this->getEnvironmentKey($environmentId, $client);
         $filePath = $this->option('file') ?? '.env';
 
@@ -139,7 +139,7 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function pushVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->getEnvironmentId($client);
         $key = $this->getEnvironmentKey($environmentId, $client);
 
         $filePath = $this->option('file') ?? '.env';
@@ -240,35 +240,6 @@ class SecretStashVariablesCommand extends BasicCommand
             $this->line('<fg=red>Failed:</> '.$failed.' (may already exist)');
         }
         $this->newLine();
-    }
-
-    protected function getEnvironmentId(SecretStashClient $client, string $applicationId): string
-    {
-        if (app()->runningUnitTests()) {
-            return $this->option('environment') ?? 'env_123';
-        }
-
-        $response = $client->getEnvironments($applicationId);
-        $environments = $response['data'] ?? [];
-
-        if (empty($environments)) {
-            throw new NoEnvironmentsFound('No environments found for application ID '.$applicationId.'.');
-        }
-
-        $choices = [];
-        foreach ($environments as $env) {
-            if ($env['slug'] === $this->environmentSlug) {
-                return $env['id'];
-            }
-            $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
-        }
-
-        $environmentId = select(
-            label: 'Select an environment',
-            options: $choices
-        );
-
-        return $environmentId;
     }
 
     protected function getEnvironmentKey(string $environmentId, SecretStashClient $client): string
