@@ -37,7 +37,7 @@ class SecretStashVariablesCommand extends BasicCommand
                 'list' => $this->listVariables($client),
                 'pull' => $this->pullVariables($client),
                 'push' => $this->pushVariables($client),
-                default => error("Unknown action: {$action}"),
+                default => $this->invalidAction($action),
             };
 
             return self::SUCCESS;
@@ -244,29 +244,18 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function getEnvironmentKey(string $environmentId, SecretStashClient $client): string
     {
-        if (app()->runningUnitTests()) {
-            return $this->option('key') ?? 'test-dek';
-        }
+        $response = $client->getEnvironmentEnvelope($environmentId);
+        $envelope = $response['data']['envelope'] ?? null;
 
-        // Try to get envelope from server
-        try {
-            $response = $client->getEnvironmentEnvelope($environmentId);
-            $envelope = $response['data']['envelope'] ?? null;
+        if ($envelope) {
+            $keysCommand = $this->makeKeysCommand();
+            $privateKey = $this->resolvePrivateKey($keysCommand);
 
-            if ($envelope) {
-                // Decrypt envelope to get DEK
-                $keysCommand = new SecretStashKeysCommand;
-                $userPassword = password(
-                    label: 'Enter your private key password',
-                    required: true
-                );
-
-                $privateKey = $keysCommand->getDecryptedPrivateKey($userPassword);
-
+            try {
                 return CryptoHelper::openEnvelope($envelope, $privateKey);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException('Unable to decrypt environment key. Verify your private key password and run "secret-stash:envelope repair" if needed.');
             }
-        } catch (\Exception $e) {
-            // Envelope not found - need to create it
         }
 
         // No envelope exists - first time setup for this environment
@@ -274,13 +263,6 @@ class SecretStashVariablesCommand extends BasicCommand
 
         // Generate new DEK
         $dek = CryptoHelper::generateKey();
-
-        // Get user's keys to create envelope
-        $keysCommand = new SecretStashKeysCommand;
-        $userPassword = password(
-            label: 'Enter your private key password',
-            required: true
-        );
 
         // Get user's public key and create envelope
         try {
@@ -302,6 +284,21 @@ class SecretStashVariablesCommand extends BasicCommand
             error('Failed to create envelope: '.$e->getMessage());
             throw $e;
         }
+    }
+
+    protected function resolvePrivateKey(SecretStashKeysCommand $keysCommand): string
+    {
+        $userPassword = password(
+            label: 'Enter your private key password',
+            required: true
+        );
+
+        return $keysCommand->getDecryptedPrivateKey($userPassword);
+    }
+
+    protected function makeKeysCommand(): SecretStashKeysCommand
+    {
+        return new SecretStashKeysCommand;
     }
 
     protected function getAppEnvFromEnvFile(): ?string
