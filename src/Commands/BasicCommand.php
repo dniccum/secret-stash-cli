@@ -7,6 +7,7 @@ use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Console\Command;
 
+use function Laravel\Prompts\error;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
@@ -15,6 +16,30 @@ abstract class BasicCommand extends Command
     protected string $applicationId;
 
     protected string $environmentSlug;
+
+    protected readonly string $path;
+
+    protected readonly string $keyFile;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->path = '/.secret-stash';
+        $this->keyFile = '/user_key.json';
+    }
+
+    protected function defaultPrivateKeyDirectory(): string
+    {
+        $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
+
+        return $homeDir.$this->path;
+    }
+
+    protected function defaultPrivateKeyPath(): string
+    {
+        return $this->defaultPrivateKeyDirectory().$this->keyFile;
+    }
 
     /**
      * @throws InvalidEnvironmentConfiguration
@@ -61,5 +86,12 @@ abstract class BasicCommand extends Command
         );
 
         return $environmentId;
+    }
+
+    protected function invalidAction(?string $action): int
+    {
+        error("Invalid action: {$action}");
+
+        return self::FAILURE;
     }
 }
