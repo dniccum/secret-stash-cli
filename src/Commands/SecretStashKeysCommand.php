@@ -130,6 +130,7 @@ class SecretStashKeysCommand extends BasicCommand
             if ($confirmSync) {
                 $this->syncFromServer($client);
             }
+
             return self::SUCCESS;
         }
 
