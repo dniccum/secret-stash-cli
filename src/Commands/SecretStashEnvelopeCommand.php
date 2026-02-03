@@ -2,9 +2,9 @@
 
 namespace Dniccum\SecretStash\Commands;
 
-use Dniccum\SecretStash\Commands\BasicCommand;
 use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\password;
