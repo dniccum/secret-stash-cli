@@ -3,6 +3,7 @@
 namespace Dniccum\SecretStash\Commands;
 
 use Illuminate\Console\Command;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 
