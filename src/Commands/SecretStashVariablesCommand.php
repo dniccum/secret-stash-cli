@@ -244,6 +244,13 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function getEnvironmentKey(string $environmentId, SecretStashClient $client): string
     {
+        if ($this->hasOption('key')) {
+            $providedKey = $this->option('key');
+            if (! empty($providedKey)) {
+                return $providedKey;
+            }
+        }
+
         $response = $client->getEnvironmentEnvelope($environmentId);
         $envelope = $response['data']['envelope'] ?? null;
 

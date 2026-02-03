@@ -32,6 +32,9 @@ abstract class BasicCommand extends Command
     protected function defaultPrivateKeyDirectory(): string
     {
         $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
+        if (app()->runningUnitTests()) {
+            $homeDir = sys_get_temp_dir();
+        }
 
         return $homeDir.$this->path;
     }
