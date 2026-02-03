@@ -3,11 +3,10 @@
 namespace Dniccum\SecretStash\Commands;
 
 use Illuminate\Console\Command;
-
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 
-class SecretStashInstallCommand extends Command
+class SecretStashInstallCommand extends BasicCommand
 {
     /**
      * @var string
@@ -31,6 +30,8 @@ class SecretStashInstallCommand extends Command
                 '--tag' => 'secret-stash-config',
             ]);
         }
+
+        $this->setEnvironment();
 
         $this->call('secret-stash:keys', [
             'action' => 'init',
