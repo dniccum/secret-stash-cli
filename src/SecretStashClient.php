@@ -52,7 +52,6 @@ class SecretStashClient
      */
     public function get(string $endpoint, array $query = []): array
     {
-        /** @phpstan-ignore-next-line */
         try {
             $response = $this->client->get($endpoint, [
                 'query' => $query,
@@ -69,7 +68,6 @@ class SecretStashClient
      */
     public function post(string $endpoint, array $data = []): array
     {
-        /** @phpstan-ignore-next-line */
         try {
             $response = $this->client->post($endpoint, [
                 'json' => $data,
@@ -97,8 +95,11 @@ class SecretStashClient
 
     /**
      * Handle API exceptions.
+     *
+     * @param \Throwable $e
+     * @return never
      */
-    protected function handleException(\Throwable $e): void
+    protected function handleException(\Throwable $e): never
     {
         if ($e->getCode() === 401 || $e->getCode() === 403) {
             throw new InvalidApiToken(
