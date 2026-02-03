@@ -181,10 +181,6 @@ class SecretStashEnvelopeCommand extends BasicCommand
 
     protected function printSuccess(): void
     {
-        if (! $this->output) {
-            return;
-        }
-
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Envelope rewrapped successfully!');
         $this->newLine();
