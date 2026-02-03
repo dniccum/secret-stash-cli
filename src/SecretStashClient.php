@@ -95,9 +95,6 @@ class SecretStashClient
 
     /**
      * Handle API exceptions.
-     *
-     * @param \Throwable $e
-     * @return never
      */
     protected function handleException(\Throwable $e): never
     {

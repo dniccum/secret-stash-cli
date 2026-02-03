@@ -6,8 +6,8 @@ use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyFailedToSave;
 use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyNotFound;
 use Dniccum\SecretStash\SecretStashClient;
-
 use Illuminate\Console\Command;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
