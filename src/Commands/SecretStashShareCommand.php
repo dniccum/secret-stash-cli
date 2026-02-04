@@ -9,7 +9,6 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\password;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
@@ -161,42 +160,5 @@ class SecretStashShareCommand extends BasicCommand
 
             return self::FAILURE;
         }
-    }
-
-    protected function getApplicationId(): string
-    {
-        $applicationId = $this->option('application');
-
-        if (empty($applicationId)) {
-            $applicationId = config('secret-stash.application_id');
-        }
-
-        return $applicationId;
-    }
-
-    protected function getEnvironmentId(SecretStashClient $client): string
-    {
-        $environmentId = $this->environmentSlug ?? $this->option('environment');
-
-        if (! $environmentId) {
-            $response = $client->getEnvironments($this->applicationId);
-            $environments = $response['data'] ?? [];
-
-            if (empty($environments)) {
-                throw new \RuntimeException('No environments found.');
-            }
-
-            $choices = [];
-            foreach ($environments as $env) {
-                $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
-            }
-
-            $environmentId = select(
-                label: 'Select an environment',
-                options: $choices
-            );
-        }
-
-        return $environmentId;
     }
 }

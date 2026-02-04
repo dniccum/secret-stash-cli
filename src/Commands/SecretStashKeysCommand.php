@@ -25,7 +25,8 @@ class SecretStashKeysCommand extends BasicCommand
     protected int $passwordLength = 8;
 
     protected $signature = 'secret-stash:keys
-                            {action? : The action to perform (status, init, sync)}';
+                            {action? : The action to perform (status, init, sync)}
+                            {--force : Force key regeneration even if server keys exist}';
 
     protected $description = 'Manage your user encryption keys (RSA key pair) for the CLI';
 
@@ -36,9 +37,8 @@ class SecretStashKeysCommand extends BasicCommand
     public function __construct()
     {
         parent::__construct();
-        $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
-        $this->keysDir = $homeDir.'/.secret-stash';
-        $this->privateKeyFile = $this->keysDir.'/user_key.json';
+        $this->keysDir = $this->defaultPrivateKeyDirectory();
+        $this->privateKeyFile = $this->defaultPrivateKeyPath();
 
         if (! is_dir($this->keysDir)) {
             mkdir($this->keysDir, 0700, true);
@@ -57,7 +57,7 @@ class SecretStashKeysCommand extends BasicCommand
                 'status' => $this->showStatus($client),
                 'init' => $this->initializeKeys($client),
                 'sync' => $this->syncFromServer($client),
-                default => $this->error("Invalid action: {$action}"),
+                default => $this->invalidAction($action),
             };
 
             return self::SUCCESS;
@@ -120,6 +120,18 @@ class SecretStashKeysCommand extends BasicCommand
 
                 return self::SUCCESS;
             }
+        }
+
+        if (! $this->confirmServerKeyOverwriteIfNeeded($client)) {
+            info('Initialization cancelled.');
+
+            $confirmSync = confirm('Would you like to sync your existing keys from the server?');
+
+            if ($confirmSync) {
+                $this->syncFromServer($client);
+            }
+
+            return self::SUCCESS;
         }
 
         $this->newLine();
@@ -220,6 +232,36 @@ class SecretStashKeysCommand extends BasicCommand
     protected function hasLocalPrivateKey(): bool
     {
         return file_exists($this->privateKeyFile);
+    }
+
+    protected function hasServerKeys(SecretStashClient $client): bool
+    {
+        try {
+            $response = $client->getUserKeys();
+            $serverKey = $response['data'] ?? null;
+
+            return (bool) ($serverKey && $serverKey['public_key']);
+        } catch (\Exception $e) {
+            warning('Unable to check for server keys. Continuing may invalidate existing access.');
+
+            return false;
+        }
+    }
+
+    protected function confirmServerKeyOverwriteIfNeeded(SecretStashClient $client): bool
+    {
+        if (! $this->hasServerKeys($client)) {
+            return true;
+        }
+
+        if ($this->option('force')) {
+            return true;
+        }
+
+        return confirm(
+            label: 'Keys already exist on the server. Replacing them will require re-sharing all environments. Continue?',
+            default: false
+        );
     }
 
     protected function loadLocalPrivateKey(): ?array

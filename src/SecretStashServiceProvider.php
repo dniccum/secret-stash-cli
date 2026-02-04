@@ -2,6 +2,7 @@
 
 namespace Dniccum\SecretStash;
 
+use Dniccum\SecretStash\Commands\SecretStashEnvelopeCommand;
 use Dniccum\SecretStash\Commands\SecretStashEnvironmentsCommand;
 use Dniccum\SecretStash\Commands\SecretStashInstallCommand;
 use Dniccum\SecretStash\Commands\SecretStashKeysCommand;
@@ -23,6 +24,7 @@ class SecretStashServiceProvider extends PackageServiceProvider
                 SecretStashKeysCommand::class,
                 SecretStashVariablesCommand::class,
                 SecretStashShareCommand::class,
+                SecretStashEnvelopeCommand::class,
             ]);
     }
 }

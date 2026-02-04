@@ -3,7 +3,6 @@
 namespace Dniccum\SecretStash\Commands;
 
 use Dniccum\SecretStash\Crypto\CryptoHelper;
-use Dniccum\SecretStash\Exceptions\Environments\NoEnvironmentsFound;
 use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyNotFound;
 use Dniccum\SecretStash\SecretStashClient;
 
@@ -11,7 +10,6 @@ use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\password;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
@@ -37,7 +35,7 @@ class SecretStashVariablesCommand extends BasicCommand
                 'list' => $this->listVariables($client),
                 'pull' => $this->pullVariables($client),
                 'push' => $this->pushVariables($client),
-                default => error("Unknown action: {$action}"),
+                default => $this->invalidAction($action),
             };
 
             return self::SUCCESS;
@@ -53,7 +51,7 @@ class SecretStashVariablesCommand extends BasicCommand
      */
     protected function listVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->getEnvironmentId($client);
         $key = $this->getEnvironmentKey($environmentId, $client);
         info('Fetching variables...');
 
@@ -97,7 +95,7 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function pullVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->getEnvironmentId($client);
         $key = $this->getEnvironmentKey($environmentId, $client);
         $filePath = $this->option('file') ?? '.env';
 
@@ -139,7 +137,7 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function pushVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->getEnvironmentId($client);
         $key = $this->getEnvironmentKey($environmentId, $client);
 
         $filePath = $this->option('file') ?? '.env';
@@ -242,60 +240,27 @@ class SecretStashVariablesCommand extends BasicCommand
         $this->newLine();
     }
 
-    protected function getEnvironmentId(SecretStashClient $client, string $applicationId): string
-    {
-        if (app()->runningUnitTests()) {
-            return $this->option('environment') ?? 'env_123';
-        }
-
-        $response = $client->getEnvironments($applicationId);
-        $environments = $response['data'] ?? [];
-
-        if (empty($environments)) {
-            throw new NoEnvironmentsFound('No environments found for application ID '.$applicationId.'.');
-        }
-
-        $choices = [];
-        foreach ($environments as $env) {
-            if ($env['slug'] === $this->environmentSlug) {
-                return $env['id'];
-            }
-            $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
-        }
-
-        $environmentId = select(
-            label: 'Select an environment',
-            options: $choices
-        );
-
-        return $environmentId;
-    }
-
     protected function getEnvironmentKey(string $environmentId, SecretStashClient $client): string
     {
-        if (app()->runningUnitTests()) {
-            return $this->option('key') ?? 'test-dek';
+        if ($this->hasOption('key')) {
+            $providedKey = $this->option('key');
+            if (! empty($providedKey)) {
+                return $providedKey;
+            }
         }
 
-        // Try to get envelope from server
-        try {
-            $response = $client->getEnvironmentEnvelope($environmentId);
-            $envelope = $response['data']['envelope'] ?? null;
+        $response = $client->getEnvironmentEnvelope($environmentId);
+        $envelope = $response['data']['envelope'] ?? null;
 
-            if ($envelope) {
-                // Decrypt envelope to get DEK
-                $keysCommand = new SecretStashKeysCommand;
-                $userPassword = password(
-                    label: 'Enter your private key password',
-                    required: true
-                );
+        if ($envelope) {
+            $keysCommand = $this->makeKeysCommand();
+            $privateKey = $this->resolvePrivateKey($keysCommand);
 
-                $privateKey = $keysCommand->getDecryptedPrivateKey($userPassword);
-
+            try {
                 return CryptoHelper::openEnvelope($envelope, $privateKey);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException('Unable to decrypt environment key. Verify your private key password and run "secret-stash:envelope repair" if needed.');
             }
-        } catch (\Exception $e) {
-            // Envelope not found - need to create it
         }
 
         // No envelope exists - first time setup for this environment
@@ -303,13 +268,6 @@ class SecretStashVariablesCommand extends BasicCommand
 
         // Generate new DEK
         $dek = CryptoHelper::generateKey();
-
-        // Get user's keys to create envelope
-        $keysCommand = new SecretStashKeysCommand;
-        $userPassword = password(
-            label: 'Enter your private key password',
-            required: true
-        );
 
         // Get user's public key and create envelope
         try {
@@ -331,6 +289,21 @@ class SecretStashVariablesCommand extends BasicCommand
             error('Failed to create envelope: '.$e->getMessage());
             throw $e;
         }
+    }
+
+    protected function resolvePrivateKey(SecretStashKeysCommand $keysCommand): string
+    {
+        $userPassword = password(
+            label: 'Enter your private key password',
+            required: true
+        );
+
+        return $keysCommand->getDecryptedPrivateKey($userPassword);
+    }
+
+    protected function makeKeysCommand(): SecretStashKeysCommand
+    {
+        return new SecretStashKeysCommand;
     }
 
     protected function getAppEnvFromEnvFile(): ?string

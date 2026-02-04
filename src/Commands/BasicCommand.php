@@ -2,9 +2,13 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Exceptions\Environments\NoEnvironmentsFound;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
+use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Console\Command;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
 abstract class BasicCommand extends Command
@@ -12,6 +16,33 @@ abstract class BasicCommand extends Command
     protected string $applicationId;
 
     protected string $environmentSlug;
+
+    protected readonly string $path;
+
+    protected readonly string $keyFile;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->path = '/.secret-stash';
+        $this->keyFile = '/user_key.json';
+    }
+
+    protected function defaultPrivateKeyDirectory(): string
+    {
+        $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
+        if (app()->runningUnitTests()) {
+            $homeDir = sys_get_temp_dir();
+        }
+
+        return $homeDir.$this->path;
+    }
+
+    protected function defaultPrivateKeyPath(): string
+    {
+        return $this->defaultPrivateKeyDirectory().$this->keyFile;
+    }
 
     /**
      * @throws InvalidEnvironmentConfiguration
@@ -29,5 +60,41 @@ abstract class BasicCommand extends Command
         while (empty($this->environmentSlug)) {
             $this->environmentSlug = text('The environment that you would like to interact with', required: true);
         }
+    }
+
+    protected function getEnvironmentId(SecretStashClient $client): string
+    {
+        if (app()->runningUnitTests()) {
+            return $this->option('environment') ?? 'env_123';
+        }
+
+        $response = $client->getEnvironments($this->applicationId);
+        $environments = $response['data'] ?? [];
+
+        if (empty($environments)) {
+            throw new NoEnvironmentsFound('No environments found for application ID '.$this->applicationId.'.');
+        }
+
+        $choices = [];
+        foreach ($environments as $env) {
+            if ($env['slug'] === $this->environmentSlug) {
+                return $env['id'];
+            }
+            $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
+        }
+
+        $environmentId = select(
+            label: 'Select an environment',
+            options: $choices
+        );
+
+        return $environmentId;
+    }
+
+    protected function invalidAction(?string $action): int
+    {
+        error("Invalid action: {$action}");
+
+        return self::FAILURE;
     }
 }

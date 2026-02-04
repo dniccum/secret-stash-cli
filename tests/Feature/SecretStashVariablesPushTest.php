@@ -5,12 +5,13 @@ use Illuminate\Support\Facades\File;
 
 it('skips variables with SECRET_STASH_ prefix when pushing', function () {
     // Arrange
+    $key = '12345678901234567890123456789012';
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_NAME=SecretStashApp\nSECRET_STASH_API_TOKEN=secret_token\nDB_PASSWORD=password123\nSECRET_STASH_URL=https://secret-stash.io");
 
     $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('getEnvironments')
-            ->twice()
+            ->once()
             ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
@@ -23,7 +24,7 @@ it('skips variables with SECRET_STASH_ prefix when pushing', function () {
     });
 
     // Act & Assert
-    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key=test-dek")
+    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key={$key}")
         ->expectsQuestion('Push 2 variable(s) to your SecretStash application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -35,6 +36,7 @@ it('skips variables with SECRET_STASH_ prefix when pushing', function () {
 
 it('skips commented variables when pushing', function () {
     // Arrange
+    $key = '12345678901234567890123456789012';
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     $envContent = <<<'EOD'
 APP_NAME=SecretStashApp
@@ -47,7 +49,7 @@ EOD;
 
     $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('getEnvironments')
-            ->twice()
+            ->once()
             ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
@@ -60,7 +62,7 @@ EOD;
     });
 
     // Act & Assert
-    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key=test-dek")
+    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key={$key}")
         ->expectsQuestion('Push 2 variable(s) to your SecretStash application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -72,6 +74,7 @@ EOD;
 
 it('skips variables with inline comments if they are at the start of the line', function () {
     // Arrange
+    $key = '12345678901234567890123456789012';
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     $envContent = <<<'EOD'
   # LEADING_SPACE_COMMENT=value
@@ -82,7 +85,7 @@ EOD;
 
     $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('getEnvironments')
-            ->twice()
+            ->once()
             ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
 
         // Should only be called for NOT_COMMENTED and WITH_HASH
@@ -95,7 +98,7 @@ EOD;
     });
 
     // Act & Assert
-    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key=test-dek")
+    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key={$key}")
         ->expectsQuestion('Push 2 variable(s) to your SecretStash application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -107,6 +110,7 @@ EOD;
 
 it('skips variables defined in ignored_variables config when pushing', function () {
     // Arrange
+    $key = '12345678901234567890123456789012';
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_NAME=SecretStashApp\nIGNORE_ME=true\nDB_PASSWORD=password123");
 
@@ -115,7 +119,7 @@ it('skips variables defined in ignored_variables config when pushing', function 
 
     $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('getEnvironments')
-            ->twice()
+            ->once()
             ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
@@ -128,7 +132,7 @@ it('skips variables defined in ignored_variables config when pushing', function 
     });
 
     // Act & Assert
-    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key=test-dek")
+    $this->artisan("secret-stash:variables push --application=app_123 --environment=testing --file={$tempEnv} --key={$key}")
         ->expectsQuestion('Push 2 variable(s) to your SecretStash application?', true)
         ->expectsOutputToContain('Push completed!')
         ->expectsOutputToContain('Created or Updated: 2')
@@ -140,6 +144,7 @@ it('skips variables defined in ignored_variables config when pushing', function 
 
 it('skips variables defined in ignored_variables config when pulling', function () {
     // Arrange
+    $key = '12345678901234567890123456789012';
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, 'EXISTING_VAR=old_value');
 
@@ -159,7 +164,7 @@ it('skips variables defined in ignored_variables config when pulling', function 
     });
 
     // Act & Assert
-    $this->artisan("secret-stash:variables pull --application=app_123 --environment=testing --file={$tempEnv} --key=test-dek")
+    $this->artisan("secret-stash:variables pull --application=app_123 --environment=testing --file={$tempEnv} --key={$key}")
         ->expectsOutputToContain('Variables pulled successfully!')
         ->assertSuccessful();
 
