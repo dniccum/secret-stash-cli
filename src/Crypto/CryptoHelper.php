@@ -86,6 +86,24 @@ class CryptoHelper
         return random_bytes(32);
     }
 
+    public static function fingerprint(string $publicKey): string
+    {
+        return hash('sha256', $publicKey);
+    }
+
+    public static function encodeRecoveryShare(string $privateKey, string $fingerprint): string
+    {
+        $payload = [
+            'v' => 1,
+            'type' => 'secret-stash-recovery',
+            'alg' => 'RSA-OAEP',
+            'fingerprint' => $fingerprint,
+            'private_key' => self::base64urlEncode($privateKey),
+        ];
+
+        return 'SSREC1-'.self::base64urlEncode(json_encode($payload));
+    }
+
     /**
      * Generate RSA-4096 key pair for user encryption.
      */
