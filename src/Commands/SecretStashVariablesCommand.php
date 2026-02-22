@@ -53,16 +53,10 @@ class SecretStashVariablesCommand extends BasicCommand
     {
         $environmentId = $this->getEnvironmentId($client);
         $key = $this->getEnvironmentKey($environmentId, $client);
+
         info('Fetching variables...');
 
-        $response = $client->getVariables($this->applicationId, $this->environmentSlug);
-        $variables = $response['data'] ?? [];
-
-        if (empty($variables)) {
-            info('No variables found.');
-
-            return;
-        }
+        $variables = $this->getVariablesForEnvironment($client, $environmentId);
 
         $this->newLine();
         $this->line('<fg=cyan;options=bold>Environment Variables</>');

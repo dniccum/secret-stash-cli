@@ -83,12 +83,10 @@ abstract class BasicCommand extends Command
             $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
         }
 
-        $environmentId = select(
+        return select(
             label: 'Select an environment',
             options: $choices
         );
-
-        return $environmentId;
     }
 
     protected function invalidAction(?string $action): int
@@ -96,5 +94,29 @@ abstract class BasicCommand extends Command
         error("Invalid action: {$action}");
 
         return self::FAILURE;
+    }
+
+    /**
+     * @param SecretStashClient $client
+     * @param string $environmentId
+     * @return array|void
+     */
+    protected function getVariablesForEnvironment(SecretStashClient $client, string $environmentId)
+    {
+        $response = $client->getVariables($this->applicationId, $environmentId);
+        $variables = $response['data'] ?? [];
+
+        if (empty($variables)) {
+            error('No variables found.');
+
+            return;
+        }
+
+        $choices = [];
+        foreach ($variables as $var) {
+            $choices[$var['id']] = $var['name'];
+        }
+
+        return $choices;
     }
 }
