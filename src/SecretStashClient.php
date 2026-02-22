@@ -381,7 +381,7 @@ class SecretStashClient
     }
 
     /**
-     * Get current user's keys (public key + encrypted private key).
+     * Get current user's device keys.
      */
     public function getUserKeys(): array
     {
@@ -389,13 +389,15 @@ class SecretStashClient
     }
 
     /**
-     * Store/update current user's keys.
+     * Store/update current user's device key.
      */
-    public function storeUserKeys(string $publicKey, array $privateKeyPayload): array
+    public function storeDeviceKey(string $label, string $publicKey, string $keyType = 'device', array $metadata = []): array
     {
         return $this->post('user/keys', [
+            'label' => $label,
+            'key_type' => $keyType,
             'public_key' => $publicKey,
-            'private_key_payload' => $privateKeyPayload,
+            'metadata' => $metadata ?: null,
         ]);
     }
 
