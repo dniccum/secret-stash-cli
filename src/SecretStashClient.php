@@ -402,19 +402,22 @@ class SecretStashClient
     }
 
     /**
-     * Get current user's envelope for an environment.
+     * Get current device envelope for an environment.
      */
-    public function getEnvironmentEnvelope(string $environmentId): array
+    public function getEnvironmentEnvelope(string $environmentId, int $deviceKeyId): array
     {
-        return $this->get("environments/{$environmentId}/envelope");
+        return $this->get("environments/{$environmentId}/envelope", [
+            'device_key_id' => $deviceKeyId,
+        ]);
     }
 
     /**
-     * Store/update current user's envelope for an environment.
+     * Store/update current device envelope for an environment.
      */
-    public function storeEnvironmentEnvelope(string $environmentId, array $envelope): array
+    public function storeEnvironmentEnvelope(string $environmentId, int $deviceKeyId, array $envelope): array
     {
         return $this->post("environments/{$environmentId}/envelope", [
+            'device_key_id' => $deviceKeyId,
             'envelope' => $envelope,
         ]);
     }
@@ -428,17 +431,9 @@ class SecretStashClient
     }
 
     /**
-     * Get organization members with their public keys.
-     */
-    public function getOrganizationMembers(string $organizationId): array
-    {
-        return $this->get("organizations/{$organizationId}/members");
-    }
-
-    /**
-     * Bulk create/update envelopes for multiple users (for sharing).
+     * Bulk create/update envelopes for multiple device keys (for sharing).
      *
-     * @param  array  $envelopes  Array of ['user_id' => int, 'envelope' => array]
+     * @param  array  $envelopes  Array of ['device_key_id' => int, 'envelope' => array]
      */
     public function storeBulkEnvironmentEnvelopes(string $environmentId, array $envelopes): array
     {
