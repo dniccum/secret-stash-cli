@@ -3,7 +3,8 @@
 use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 
-function seedDeviceForEnvelope(): array {
+function seedDeviceForEnvelope(): array
+{
     $dir = sys_get_temp_dir().'/.secret-stash';
     if (! is_dir($dir)) {
         mkdir($dir, 0700, true);

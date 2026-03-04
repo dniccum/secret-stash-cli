@@ -4,6 +4,7 @@ namespace Dniccum\SecretStash\Commands\Traits;
 
 use Dniccum\SecretStash\Exceptions\Keys\NoApplicationsAvailable;
 use Dniccum\SecretStash\SecretStashClient;
+
 use function Laravel\Prompts\select;
 
 trait UsesApplicationId
@@ -15,12 +16,11 @@ trait UsesApplicationId
      * the list of applications from the specified organization and prompts
      * the user to select one.
      *
-     * @param SecretStashClient $client The client responsible for communicating with the application API.
-     * @param string $organizationId The identifier of the organization whose applications are being retrieved.
-     *
+     * @param  SecretStashClient  $client  The client responsible for communicating with the application API.
+     * @param  string  $organizationId  The identifier of the organization whose applications are being retrieved.
      * @return string The selected or provided application ID.
-     * @throws NoApplicationsAvailable If no applications exist for the given organization.
      *
+     * @throws NoApplicationsAvailable If no applications exist for the given organization.
      */
     protected function getApplicationId(SecretStashClient $client, string $organizationId): string
     {
@@ -47,5 +47,4 @@ trait UsesApplicationId
 
         return $applicationId;
     }
-
 }

@@ -9,11 +9,11 @@ use Dniccum\SecretStash\Exceptions\Keys\MetaKeyFailedToSave;
 use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyFailedToSave;
 use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyNotFound;
 use Dniccum\SecretStash\SecretStashClient;
-
 use Endroid\QrCode\Matrix\MatrixInterface;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\SvgWriter;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;

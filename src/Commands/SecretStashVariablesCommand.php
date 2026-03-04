@@ -5,14 +5,12 @@ namespace Dniccum\SecretStash\Commands;
 use Dniccum\SecretStash\Commands\Traits\UsesApplicationId;
 use Dniccum\SecretStash\Contracts\ApplicationEnvironmentVariable;
 use Dniccum\SecretStash\Crypto\CryptoHelper;
-use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyNotFound;
 use Dniccum\SecretStash\SecretStashClient;
-
 use Dniccum\SecretStash\Support\VariableUtility;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\password;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
