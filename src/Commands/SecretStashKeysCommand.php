@@ -2,54 +2,42 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Contracts\RSAKeyPair;
 use Dniccum\SecretStash\Crypto\CryptoHelper;
+use Dniccum\SecretStash\Exceptions\Keys\DeviceKeyNotRegistered;
+use Dniccum\SecretStash\Exceptions\Keys\MetaKeyFailedToSave;
 use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyFailedToSave;
 use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyNotFound;
 use Dniccum\SecretStash\SecretStashClient;
 
+use Endroid\QrCode\Matrix\MatrixInterface;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Writer\SvgWriter;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\password;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
+use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
 
 class SecretStashKeysCommand extends BasicCommand
 {
-    /**
-     * The minimum number of characters required for a password.
-     *
-     * @note While this is a security measure, this could be a feature to be controlled via the API.
-     */
-    protected int $passwordLength = 8;
-
     protected $signature = 'secret-stash:keys
-                            {action? : The action to perform (status, init, sync)}
-                            {--force : Force key regeneration even if server keys exist}';
+                            {action? : The action to perform (status, init, sync, recovery)}
+                            {--force : Force device key regeneration}
+                            {--label= : Device label for this machine}
+                            {--copies=1 : Number of recovery share copies to print}
+                            {--output-dir= : Directory to save recovery share files}';
 
-    protected $description = 'Manage your user encryption keys (RSA key pair) for the CLI';
-
-    protected string $keysDir;
-
-    protected string $privateKeyFile;
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->keysDir = $this->defaultPrivateKeyDirectory();
-        $this->privateKeyFile = $this->defaultPrivateKeyPath();
-
-        if (! is_dir($this->keysDir)) {
-            mkdir($this->keysDir, 0700, true);
-        }
-    }
+    protected $description = 'Manage your SecretStash device keys';
 
     public function handle(SecretStashClient $client): int
     {
         $action = $this->argument('action') ?? select(
             'What would you like to do?',
-            ['status', 'init', 'sync']
+            ['status', 'init', 'sync', 'recovery']
         );
 
         try {
@@ -57,6 +45,7 @@ class SecretStashKeysCommand extends BasicCommand
                 'status' => $this->showStatus($client),
                 'init' => $this->initializeKeys($client),
                 'sync' => $this->syncFromServer($client),
+                'recovery' => $this->generateRecoveryKey($client),
                 default => $this->invalidAction($action),
             };
 
@@ -71,27 +60,38 @@ class SecretStashKeysCommand extends BasicCommand
     protected function showStatus(SecretStashClient $client): int
     {
         $this->newLine();
-        $this->line('<fg=cyan;options=bold>Key Status</>');
+        $this->line('<fg=cyan;options=bold>Device Key Status</>');
         $this->newLine();
 
-        // Check local keys
-        $localKey = $this->loadLocalPrivateKey();
-        if ($localKey) {
+        $localPrivateKey = $this->loadPrivateKey();
+        $localMeta = $this->loadDeviceMetadata();
+
+        if ($localPrivateKey) {
             $this->line('<fg=green>✓</> Local private key: <fg=green>Present</>');
         } else {
             $this->line('<fg=red>✗</> Local private key: <fg=red>Missing</>');
         }
 
-        // Check server keys
+        if ($localMeta) {
+            $deviceId = $localMeta['device_key_id'] ?? 'Unknown';
+            $label = $localMeta['label'] ?? 'Unknown';
+            $this->line("<fg=green>✓</> Device record: <fg=green>Present</> (ID: {$deviceId}, {$label})");
+        } else {
+            $this->line('<fg=red>✗</> Device record: <fg=red>Missing</>');
+        }
+
         try {
             $response = $client->getUserKeys();
-            $serverKey = $response['data'] ?? null;
+            $serverKeys = $response['data'] ?? [];
+            $this->line('<fg=green>✓</> Server device keys: <fg=green>'.count($serverKeys).'</>');
 
-            if ($serverKey && $serverKey['public_key']) {
-                $this->line('<fg=green>✓</> Server public key: <fg=green>Present</>');
-                $this->line('<fg=green>✓</> Server private key (encrypted): <fg=green>Present</>');
-            } else {
-                $this->line('<fg=red>✗</> Server keys: <fg=red>Not uploaded</>');
+            if ($localMeta && $localMeta['fingerprint'] ?? null) {
+                $match = collect($serverKeys)->firstWhere('fingerprint', $localMeta['fingerprint']);
+                if ($match) {
+                    $this->line('<fg=green>✓</> This device is registered on the server.');
+                } else {
+                    $this->line('<fg=yellow>⚠</> This device is not registered on the server.');
+                }
             }
         } catch (\Exception $e) {
             $this->line('<fg=red>✗</> Server keys: <fg=red>Unable to check</>');
@@ -99,8 +99,8 @@ class SecretStashKeysCommand extends BasicCommand
 
         $this->newLine();
 
-        if (! $localKey) {
-            info('Run "secret-stash:keys init" to generate your encryption keys.');
+        if (! $localPrivateKey || ! $localMeta) {
+            info('Run "secret-stash:keys init" to generate and register this device.');
         }
 
         return self::SUCCESS;
@@ -108,10 +108,9 @@ class SecretStashKeysCommand extends BasicCommand
 
     protected function initializeKeys(SecretStashClient $client): int
     {
-        // Check if keys already exist locally
-        if ($this->hasLocalPrivateKey()) {
+        if ($this->hasLocalPrivateKey() && ! $this->option('force')) {
             $overwrite = confirm(
-                label: 'Keys already exist locally. Generate new keys? (This will require re-sharing all environments)',
+                label: 'Device keys already exist locally. Generate new keys? (This device will need access re-granted)',
                 default: false
             );
 
@@ -122,77 +121,46 @@ class SecretStashKeysCommand extends BasicCommand
             }
         }
 
-        if (! $this->confirmServerKeyOverwriteIfNeeded($client)) {
-            info('Initialization cancelled.');
-
-            $confirmSync = confirm('Would you like to sync your existing keys from the server?');
-
-            if ($confirmSync) {
-                $this->syncFromServer($client);
-            }
-
-            return self::SUCCESS;
-        }
-
         $this->newLine();
-        $this->line('<fg=cyan;options=bold>Initializing User Keys</>');
+        $this->line('<fg=cyan;options=bold>Initializing Device Keys</>');
         $this->newLine();
 
-        info('You will need to create a password to protect your private key. Make it secure, but also make sure this is something that you can easily remember.');
-        info('This password is NEVER sent to the server and cannot be recovered if lost.');
-        $this->newLine();
+        $label = $this->resolveDeviceLabel();
 
-        $password = password(
-            label: 'Enter a strong password for your private key',
-            placeholder: 'Min '.$this->passwordLength.' characters',
-            required: true,
-            validate: fn ($value) => strlen($value) < $this->passwordLength
-                ? 'Password must be at least '.$this->passwordLength.' characters.'
-                : null
-        );
-
-        $confirmPassword = password(
-            label: 'Confirm password',
-            required: true
-        );
-
-        if ($password !== $confirmPassword) {
-            error('Passwords do not match.');
-
-            return self::FAILURE;
-        }
-
-        // Generate RSA key pair
+        /**
+         * @var RSAKeyPair $keyPair
+         */
         $keyPair = spin(
             callback: fn () => CryptoHelper::generateRSAKeyPair(),
             message: 'Generating RSA-4096 key pair (this may take a moment)...'
         );
 
-        $this->newLine();
-        info('Keys generated successfully!');
+        $this->savePrivateKey($keyPair->private_key);
+        info('Private key saved locally (device-bound).');
 
-        // Encrypt private key with password
-        $privateKeyPayload = CryptoHelper::encryptPrivateKey($keyPair['private_key'], $password);
+        $metadata = [
+            'label' => $label,
+            'hostname' => gethostname() ?: null,
+            'platform' => PHP_OS_FAMILY,
+        ];
 
-        // Save locally
-        $this->saveLocalPrivateKey($privateKeyPayload);
-        info('Private key saved locally (encrypted).');
+        $response = $client->storeDeviceKey($label, $keyPair['public_key'], 'device', $metadata);
+        $deviceKey = $response['data'] ?? null;
 
-        // Upload to server
-        try {
-            $client->storeUserKeys($keyPair['public_key'], $privateKeyPayload);
-            info('Keys uploaded to server successfully!');
-        } catch (\Exception $e) {
-            error('Failed to upload keys to server: '.$e->getMessage());
-            warning('Your keys are saved locally but not on the server. Try running "secret-stash:keys sync" later.');
-
-            return self::FAILURE;
+        if (! $deviceKey || ! isset($deviceKey['id'])) {
+            throw new PrivateKeyFailedToSave('Failed to register device key.');
         }
 
+        $this->saveDeviceMetadata([
+            'device_key_id' => $deviceKey['id'],
+            'label' => $deviceKey['label'] ?? $label,
+            'public_key' => $deviceKey['public_key'] ?? $keyPair['public_key'],
+            'fingerprint' => $deviceKey['fingerprint'] ?? CryptoHelper::fingerprint($keyPair['public_key']),
+        ]);
+
         $this->newLine();
-        $this->line('<fg=green;options=bold>✓</> Initialization complete!');
+        $this->line('<fg=green;options=bold>✓</> Device key registered!');
         $this->newLine();
-        info('You can now push variables and share environments with your team.');
 
         return self::SUCCESS;
     }
@@ -200,33 +168,182 @@ class SecretStashKeysCommand extends BasicCommand
     protected function syncFromServer(SecretStashClient $client): int
     {
         $this->newLine();
-        info('Fetching keys from server...');
+        info('Syncing device registration from server...');
 
-        try {
-            $response = $client->getUserKeys();
-            $serverKey = $response['data'] ?? null;
-
-            if (! $serverKey || ! $serverKey['public_key']) {
-                error('No keys found on server. Run "secret-stash:keys init" first.');
-
-                return self::FAILURE;
-            }
-
-            // Save the encrypted private key locally
-            $this->saveLocalPrivateKey($serverKey['private_key_payload']);
-
-            $this->newLine();
-            $this->line('<fg=green;options=bold>✓</> Keys synced from server!');
-            $this->newLine();
-            info('Your encrypted private key has been downloaded.');
-            info('You will need your password to decrypt it when using variables.');
-
-            return self::SUCCESS;
-        } catch (\Exception $e) {
-            error('Failed to sync keys: '.$e->getMessage());
+        $localMeta = $this->loadDeviceMetadata();
+        if (! $localMeta) {
+            error('No local device record found. Run "secret-stash:keys init" first.');
 
             return self::FAILURE;
         }
+
+        $fingerprint = $localMeta['fingerprint'] ?? null;
+        if (! $fingerprint) {
+            error('Local device record missing fingerprint.');
+
+            return self::FAILURE;
+        }
+
+        $response = $client->getUserKeys();
+        $serverKeys = $response['data'] ?? [];
+        $match = collect($serverKeys)->firstWhere('fingerprint', $fingerprint);
+
+        if (! $match) {
+            error('No matching device key found on the server. Run "secret-stash:keys init" to register.');
+
+            return self::FAILURE;
+        }
+
+        $this->saveDeviceMetadata([
+            'device_key_id' => $match['id'],
+            'label' => $match['label'] ?? $localMeta['label'] ?? 'Device',
+            'public_key' => $match['public_key'] ?? $localMeta['public_key'] ?? null,
+            'fingerprint' => $match['fingerprint'] ?? $fingerprint,
+        ]);
+
+        $this->newLine();
+        $this->line('<fg=green;options=bold>✓</> Device registration synced.');
+        $this->newLine();
+
+        return self::SUCCESS;
+    }
+
+    protected function generateRecoveryKey(SecretStashClient $client): int
+    {
+        $this->newLine();
+        $this->line('<fg=cyan;options=bold>Generating Recovery Key</>');
+        $this->newLine();
+
+        $response = $client->getUserKeys();
+        $existingRecovery = collect($response['data'] ?? [])->firstWhere('key_type', 'recovery');
+
+        if ($existingRecovery && ! $this->option('force')) {
+            $replace = confirm(
+                label: 'A recovery key already exists. Replace it?',
+                default: false
+            );
+
+            if (! $replace) {
+                info('Recovery key generation cancelled.');
+
+                return self::SUCCESS;
+            }
+        }
+
+        $keyPair = spin(
+            callback: fn () => CryptoHelper::generateRSAKeyPair(),
+            message: 'Generating RSA-4096 recovery key...'
+        );
+
+        $fingerprint = CryptoHelper::fingerprint($keyPair['public_key']);
+        $share = CryptoHelper::encodeRecoveryShare($keyPair['private_key'], $fingerprint);
+
+        $response = $client->storeDeviceKey('Recovery Key', $keyPair['public_key'], 'recovery');
+        $deviceKey = $response['data'] ?? null;
+
+        if (! $deviceKey || ! isset($deviceKey['id'])) {
+            throw new PrivateKeyFailedToSave('Failed to register recovery key.');
+        }
+
+        $copies = $this->resolveCopies();
+        $outputDir = $this->resolveOutputDir();
+        $sharePath = $outputDir.'/secret-stash-recovery-'.$fingerprint.'.txt';
+        file_put_contents($sharePath, $share);
+        chmod($sharePath, 0600);
+
+        $pngPath = $outputDir.'/secret-stash-recovery-'.$fingerprint.'.png';
+        $pngCreated = $this->writePngQr($share, $pngPath);
+
+        $this->newLine();
+        $this->line('<fg=green;options=bold>✓</> Recovery key created!');
+        $this->line('<fg=yellow>Share:</> '.$share);
+        $this->line('<fg=yellow>Saved:</> '.$sharePath);
+
+        if ($pngCreated) {
+            $this->line('<fg=yellow>QR PNG:</> '.$pngPath);
+        } else {
+            warning('QR PNG generation unavailable. Install `qrencode` to enable PNG output.');
+        }
+
+        for ($i = 1; $i <= $copies; $i++) {
+            $this->newLine();
+            $this->line('<fg=cyan;options=bold>Recovery Share Copy '.$i.'</>');
+            $this->line($share);
+            $ascii = $this->renderAsciiQr($share);
+            if ($ascii) {
+                $this->line($ascii);
+            } else {
+                warning('QR code rendering unavailable. Install `qrencode` to enable ASCII QR output.');
+            }
+        }
+
+        $this->newLine();
+        info('Store these recovery shares offline. Anyone with the share can decrypt your data.');
+
+        return self::SUCCESS;
+    }
+
+    public function getPrivateKey(): string
+    {
+        $privateKey = $this->loadPrivateKey();
+
+        if (! $privateKey) {
+            throw new PrivateKeyNotFound;
+        }
+
+        return $privateKey;
+    }
+
+    public function getDeviceKeyId(): int
+    {
+        $metadata = $this->loadDeviceMetadata();
+
+        if (! $metadata || ! isset($metadata['device_key_id'])) {
+            throw new DeviceKeyNotRegistered;
+        }
+
+        return (int) $metadata['device_key_id'];
+    }
+
+    public function getDevicePublicKey(): string
+    {
+        $metadata = $this->loadDeviceMetadata();
+
+        if (! $metadata || ! isset($metadata['public_key'])) {
+            throw new DeviceKeyNotRegistered('Device public key not found. Run "secret-stash:keys init" first.');
+        }
+
+        return $metadata['public_key'];
+    }
+
+    protected function resolveDeviceLabel(): string
+    {
+        $default = $this->option('label') ?? (gethostname() ?: 'My Device');
+
+        return text(
+            label: 'Device label',
+            placeholder: $default,
+            default: $default,
+            required: true
+        );
+    }
+
+    protected function resolveCopies(): int
+    {
+        $copies = (int) ($this->option('copies') ?? 1);
+
+        return max(1, $copies);
+    }
+
+    protected function resolveOutputDir(): string
+    {
+        $dir = $this->option('output-dir') ?? $this->path;
+
+        if (! is_dir($dir)) {
+            mkdir($dir, 0700, true);
+        }
+
+        return rtrim($dir, '/');
     }
 
     protected function hasLocalPrivateKey(): bool
@@ -234,79 +351,120 @@ class SecretStashKeysCommand extends BasicCommand
         return file_exists($this->privateKeyFile);
     }
 
-    protected function hasServerKeys(SecretStashClient $client): bool
-    {
-        try {
-            $response = $client->getUserKeys();
-            $serverKey = $response['data'] ?? null;
-
-            return (bool) ($serverKey && $serverKey['public_key']);
-        } catch (\Exception $e) {
-            warning('Unable to check for server keys. Continuing may invalidate existing access.');
-
-            return false;
-        }
-    }
-
-    protected function confirmServerKeyOverwriteIfNeeded(SecretStashClient $client): bool
-    {
-        if (! $this->hasServerKeys($client)) {
-            return true;
-        }
-
-        if ($this->option('force')) {
-            return true;
-        }
-
-        return confirm(
-            label: 'Keys already exist on the server. Replacing them will require re-sharing all environments. Continue?',
-            default: false
-        );
-    }
-
-    protected function loadLocalPrivateKey(): ?array
+    protected function loadPrivateKey(): ?string
     {
         if (! file_exists($this->privateKeyFile)) {
             return null;
         }
 
         $content = file_get_contents($this->privateKeyFile);
+
+        return $content === false ? null : $content;
+    }
+
+    protected function savePrivateKey(string $privateKey): void
+    {
+        if (file_put_contents($this->privateKeyFile, $privateKey) === false) {
+            throw new PrivateKeyFailedToSave;
+        }
+
+        chmod($this->privateKeyFile, 0600);
+    }
+
+    protected function loadDeviceMetadata(): ?array
+    {
+        if (! file_exists($this->deviceMetaFile)) {
+            return null;
+        }
+
+        $content = file_get_contents($this->deviceMetaFile);
         if ($content === false) {
             return null;
         }
 
-        $key = json_decode($content, true);
+        $meta = json_decode($content, true);
 
-        return is_array($key) ? $key : null;
+        return is_array($meta) ? $meta : null;
     }
 
-    protected function saveLocalPrivateKey(array $privateKeyPayload): void
+    protected function saveDeviceMetadata(array $metadata): void
     {
-        $content = json_encode($privateKeyPayload, JSON_PRETTY_PRINT);
-        if (file_put_contents($this->privateKeyFile, $content) === false) {
-            throw new PrivateKeyFailedToSave;
+        $content = json_encode($metadata, JSON_PRETTY_PRINT);
+        if (file_put_contents($this->deviceMetaFile, $content) === false) {
+            throw new MetaKeyFailedToSave;
         }
-        chmod($this->privateKeyFile, 0600);
+
+        chmod($this->deviceMetaFile, 0600);
     }
 
-    /**
-     * Get the user's decrypted private key (prompts for password if needed).
-     */
-    public function getDecryptedPrivateKey(?string $password = null): string
+    protected function renderAsciiQr(string $data): ?string
     {
-        $privateKeyPayload = $this->loadLocalPrivateKey();
+        try {
+            $writer = new SvgWriter;
+            $result = $writer->write($this->createQrCode($data));
+            $matrix = $result->getMatrix();
 
-        if (! $privateKeyPayload) {
-            throw new PrivateKeyNotFound;
+            return $this->matrixToAscii($matrix);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    protected function writePngQr(string $data, string $path): bool
+    {
+        if (! extension_loaded('gd')) {
+            return false;
         }
 
-        if ($password === null) {
-            $password = password(
-                label: 'Enter your private key password',
-                required: true
-            );
+        try {
+            $writer = new PngWriter;
+            $result = $writer->write($this->createQrCode($data));
+            $result->saveToFile($path);
+
+            return file_exists($path);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    protected function writeSvgQr(string $data, string $path): bool
+    {
+        try {
+            $writer = new SvgWriter;
+            $result = $writer->write($this->createQrCode($data));
+            $result->saveToFile($path);
+
+            return file_exists($path);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    protected function createQrCode(string $data): QrCode
+    {
+        return QrCode::create($data)
+            ->setSize(320)
+            ->setMargin(1);
+    }
+
+    protected function matrixToAscii(MatrixInterface $matrix): string
+    {
+        $rows = [];
+        $size = $matrix->getBlockCount();
+        $quietZone = 2;
+
+        for ($row = -$quietZone; $row < $size + $quietZone; $row++) {
+            $line = '';
+            for ($col = -$quietZone; $col < $size + $quietZone; $col++) {
+                $isDark = $row >= 0 && $col >= 0 && $row < $size && $col < $size
+                    ? $matrix->getBlockValue($row, $col) === 1
+                    : false;
+
+                $line .= $isDark ? '██' : '  ';
+            }
+            $rows[] = $line;
         }
 
-        return CryptoHelper::decryptPrivateKey($privateKeyPayload, $password);
+        return implode(PHP_EOL, $rows);
     }
 }
