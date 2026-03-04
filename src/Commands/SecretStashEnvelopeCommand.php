@@ -16,7 +16,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
     protected $signature = 'secret-stash:envelope
                             {action? : The action to perform (rewrap, repair, reset)}
                             {--application= : Application ID}
-                            {--environment= : Environment ID}
+                            {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
                             {--old-key-file= : Path to the old encrypted private key JSON}';
 
     protected $description = 'Rewrap environment key envelopes';
@@ -47,10 +47,12 @@ class SecretStashEnvelopeCommand extends BasicCommand
     protected function rewrapEnvelope(SecretStashClient $client): int
     {
         $environmentId = $this->getEnvironmentId($client);
+        $keysCommand = new SecretStashKeysCommand;
+        $deviceKeyId = $keysCommand->getDeviceKeyId();
 
         info('Fetching environment envelope...');
 
-        $response = $client->getEnvironmentEnvelope($environmentId);
+        $response = $client->getEnvironmentEnvelope($this->applicationId, $environmentId, $deviceKeyId);
         $envelope = $response['data']['envelope'] ?? null;
 
         if (! $envelope) {
@@ -72,7 +74,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
         }
 
         $newEnvelope = CryptoHelper::createEnvelope($dek, $publicKey);
-        $client->storeEnvironmentEnvelope($environmentId, $newEnvelope);
+        $client->storeEnvironmentEnvelope($this->applicationId, $environmentId, $deviceKeyId, $newEnvelope);
         $this->printSuccess();
 
         return self::SUCCESS;
@@ -98,6 +100,8 @@ class SecretStashEnvelopeCommand extends BasicCommand
     protected function resetEnvelope(SecretStashClient $client): int
     {
         $environmentId = $this->getEnvironmentId($client);
+        $keysCommand = new SecretStashKeysCommand;
+        $deviceKeyId = $keysCommand->getDeviceKeyId();
 
         $userKeysResponse = $client->getUserKeys();
         $publicKey = $userKeysResponse['data']['public_key'] ?? null;
@@ -108,7 +112,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
 
         $dek = CryptoHelper::generateKey();
         $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
-        $client->storeEnvironmentEnvelope($environmentId, $envelope);
+        $client->storeEnvironmentEnvelope($this->applicationId, $environmentId, $deviceKeyId, $envelope);
 
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Environment key reset successfully!');
