@@ -2,6 +2,7 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Contracts\ApplicationEnvironmentVariable;
 use Dniccum\SecretStash\Exceptions\Environments\NoEnvironmentsFound;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
@@ -19,14 +20,23 @@ abstract class BasicCommand extends Command
 
     protected readonly string $path;
 
-    protected readonly string $keyFile;
+    protected readonly string $privateKeyFile;
+
+    protected readonly string $deviceMetaFile;
+
+    protected string $keyLocation = '/.secret-stash';
 
     public function __construct()
     {
         parent::__construct();
 
-        $this->path = '/.secret-stash';
-        $this->keyFile = '/user_key.json';
+        $this->path = $this->defaultPrivateKeyDirectory();
+        $this->privateKeyFile = $this->path.'/device_private_key.pem';
+        $this->deviceMetaFile = $this->path.'/device.json';
+
+        if (! is_dir($this->path)) {
+            mkdir($this->path, 0700, true);
+        }
     }
 
     protected function defaultPrivateKeyDirectory(): string
@@ -36,12 +46,7 @@ abstract class BasicCommand extends Command
             $homeDir = sys_get_temp_dir();
         }
 
-        return $homeDir.$this->path;
-    }
-
-    protected function defaultPrivateKeyPath(): string
-    {
-        return $this->defaultPrivateKeyDirectory().$this->keyFile;
+        return $homeDir.$this->keyLocation;
     }
 
     /**
@@ -98,12 +103,11 @@ abstract class BasicCommand extends Command
 
     /**
      * @param SecretStashClient $client
-     * @param string $environmentId
-     * @return array|void
+     * @return array<ApplicationEnvironmentVariable>|void
      */
-    protected function getVariablesForEnvironment(SecretStashClient $client, string $environmentId)
+    protected function getVariablesForEnvironment(SecretStashClient $client)
     {
-        $response = $client->getVariables($this->applicationId, $environmentId);
+        $response = $client->getVariables($this->applicationId, $this->environmentSlug);
         $variables = $response['data'] ?? [];
 
         if (empty($variables)) {
@@ -111,12 +115,11 @@ abstract class BasicCommand extends Command
 
             return;
         }
-
-        $choices = [];
-        foreach ($variables as $var) {
-            $choices[$var['id']] = $var['name'];
-        }
-
-        return $choices;
+        return array_map(fn ($var) => new ApplicationEnvironmentVariable(
+            id: $var['id'],
+            name: $var['name'],
+            payload: $var['payload'],
+            created_at: $var['created_at'],
+        ), $variables);
     }
 }
