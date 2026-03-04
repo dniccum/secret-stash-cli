@@ -2,6 +2,8 @@
 
 namespace Dniccum\SecretStash\Crypto;
 
+use Dniccum\SecretStash\Contracts\RSAKeyPair;
+
 class CryptoHelper
 {
     public static function base64urlEncode(string $data): string
@@ -107,7 +109,7 @@ class CryptoHelper
     /**
      * Generate RSA-4096 key pair for user encryption.
      */
-    public static function generateRSAKeyPair(): array
+    public static function generateRSAKeyPair(): RSAKeyPair
     {
         $config = [
             'private_key_bits' => 4096,
@@ -126,10 +128,7 @@ class CryptoHelper
         $publicKeyDetails = openssl_pkey_get_details($res);
         $publicKey = $publicKeyDetails['key'];
 
-        return [
-            'private_key' => $privateKey,
-            'public_key' => $publicKey,
-        ];
+        return new RSAKeyPair($privateKey, $publicKey);
     }
 
     /**
