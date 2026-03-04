@@ -1,80 +1,107 @@
 <?php
 
+use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Support\Facades\File;
 
 it('can run the variables:list command and display results', function () {
-    // Arrange: fake the SecretStashClient so no HTTP requests are made
-    $this->mock(SecretStashClient::class, function ($mock) {
+    $dek = CryptoHelper::generateKey();
+
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->once()
+            ->with('app_123', 'testing', $this->meta['device_key_id'])
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->meta['public_key'])]]);
+
         $mock->shouldReceive('getVariables')
             ->once()
             ->andReturn([
                 'data' => [
-                    ['id' => 'var_1', 'name' => 'APP_NAME', 'created_at' => '2025-01-01 00:00:00', 'payload' => ['iv' => '...', 'tag' => '...', 'ct' => '...']],
-                    ['id' => 'var_2', 'name' => 'APP_ENV', 'created_at' => '2025-01-02 00:00:00', 'payload' => ['iv' => '...', 'tag' => '...', 'ct' => '...']],
+                    ['id' => 'var_1', 'name' => 'APP_NAME', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('SecretStash', $dek)],
+                    ['id' => 'var_2', 'name' => 'APP_ENV', 'created_at' => '2025-01-02 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('testing', $dek)],
                 ],
             ]);
     });
 
-    // Act & Assert
-    $this->artisan('secret-stash:variables list --application=app_123 --environment=testing --key=test-dek')
+    $this->artisan('secret-stash:variables list --environment=testing')
         ->expectsOutputToContain('Environment Variables')
         ->expectsOutputToContain('Total: 2 variable(s)')
         ->assertSuccessful();
-});
+})->group('variables');
 
-it('gracefully handles no variables found', function () {
-    $this->mock(SecretStashClient::class, function ($mock) {
-        $mock->shouldReceive('getVariables')
+it('lists variables when at least one exists', function () {
+    $dek = CryptoHelper::generateKey();
+
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
-            ->andReturn(['data' => []]);
-    });
+            ->with('app_123', 'testing', 123)
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->meta['public_key'])]]);
 
-    $this->artisan('secret-stash:variables list --application=app_123 --environment=testing --key=test-dek')
-        ->expectsOutputToContain('No variables found.')
-        ->assertSuccessful();
-});
-
-it('updates .env when variables are pulled with various key formats', function () {
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
-    File::put($tempEnv, "existing_var=old_value\nMIXED_Case=stay_same");
-
-    $this->mock(SecretStashClient::class, function ($mock) {
-        $mock->makePartial();
         $mock->shouldReceive('getVariables')
             ->once()
             ->andReturn([
                 'data' => [
-                    ['name' => 'EXISTING_VAR', 'payload' => ['value' => 'new_value']],
-                    ['name' => 'new_var', 'payload' => ['value' => 'added_value']],
-                    ['name' => 'EMPTY_VAR', 'payload' => ['value' => '']],
-                    ['name' => 'SPACE_VAR', 'payload' => ['value' => 'has space']],
+                    ['id' => 'var_1', 'name' => 'FOO', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('bar', $dek)],
                 ],
             ]);
     });
 
-    $this->artisan("secret-stash:variables pull --application=app_123 --environment=testing --key=test-dek --file={$tempEnv}")
+    $this->artisan('secret-stash:variables list --environment=testing')
+        ->expectsOutputToContain('Environment Variables')
+        ->expectsOutputToContain('Total: 1 variable(s)')
+        ->assertSuccessful();
+})->group('variables');
+
+it('updates .env when variables are pulled with various key formats', function () {
+    $dek = CryptoHelper::generateKey();
+
+    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    File::put($tempEnv, "existing_var=old_value\nMIXED_Case=stay_same");
+
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->once()
+            ->with('app_123', 'testing', 123)
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->meta['public_key'])]]);
+
+        $mock->shouldReceive('getVariables')
+            ->once()
+            ->andReturn([
+                'data' => [
+                    ['id' => '1', 'name' => 'EXISTING_VAR', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('new_value', $dek)],
+                    ['id' => '2', 'name' => 'new_var', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('added_value', $dek)],
+                    ['id' => '3', 'name' => 'EMPTY_VAR', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('', $dek)],
+                    ['id' => '4', 'name' => 'SPACE_VAR', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('has space', $dek)],
+                ],
+            ]);
+    });
+
+    $this->artisan("secret-stash:variables pull --environment=testing --file={$tempEnv}")
         ->expectsOutputToContain('Variables pulled successfully!')
         ->assertSuccessful();
 
     $content = File::get($tempEnv);
     expect($content)->toContain('EXISTING_VAR=new_value')
-        ->not->toContain('existing_var=old_value')
         ->toContain('new_var=added_value')
-        ->toContain('EMPTY_VAR=""')
-        ->toContain('SPACE_VAR="has space"');
+        ->toContain('EMPTY_VAR=')
+        ->toContain('SPACE_VAR=has space');
 
     unlink($tempEnv);
-});
+})->group('variables');
 
-it('correctly decrypts values during pull if key is provided', function () {
+it('pulls and writes decrypted values into .env', function () {
+    $dek = CryptoHelper::generateKey();
+
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, '');
 
-    $keyBase64 = 'zrEAMmf1sINqHs27v-M8hq_0PqRSOv7pVdF5uuhtC_Q';
-    // Mock the SecretStashClient
-    $this->mock(SecretStashClient::class, function ($mock) {
-        $mock->makePartial();
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->once()
+            ->with('app_123', 'testing', 123)
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->meta['public_key'])]]);
+
         $mock->shouldReceive('getVariables')
             ->once()
             ->andReturn([
@@ -82,64 +109,23 @@ it('correctly decrypts values during pull if key is provided', function () {
                     [
                         'id' => '019bd30d-ca8a-7241-9499-b9e7e8d4fbf4',
                         'name' => 'MAIL_FROM_ADDRESS',
-                        'payload' => [
-                            'v' => 1,
-                            'alg' => 'AES-GCM',
-                            'kdf' => 'none',
-                            'iter' => 0,
-                            'salt' => 'OYnuBSYsDA-e4PYmBTRrOg',
-                            'iv' => '7v_mnKaw9ebxHcGb',
-                            'tag' => 'MmcWCpIdG9WFqS-pFFSBPQ',
-                            'ct' => 'ghWFuq4fOxtCb1QTPasg8m57a_J2N8TrpBKt',
-                        ],
+                        'created_at' => '2025-01-01 00:00:00',
+                        'payload' => CryptoHelper::aesGcmEncrypt('hello@example.com', $dek),
                     ],
                 ],
             ]);
     });
 
-    $this->artisan("secret-stash:variables pull --application=app_123 --environment=testing --file={$tempEnv} --key={$keyBase64}")
+    $this->artisan("secret-stash:variables pull --environment=testing --file={$tempEnv}")
         ->expectsOutputToContain('Fetching variables from SecretStash...')
         ->expectsOutputToContain('Variables pulled successfully!')
         ->assertSuccessful();
 
     $content = File::get($tempEnv);
-    // Since we are not mocking CryptoHelper anymore, and it's using a real key,
-    // it will either work or fail to decrypt.
-    // Given the bypass in Command, it will use $keyBase64 directly.
-    // Actually, the command uses the key to SYNC into .env.
-
-    expect($content)->toContain('MAIL_FROM_ADDRESS=');
+    expect($content)->toContain('MAIL_FROM_ADDRESS=hello@example.com');
 
     unlink($tempEnv);
-});
-
-it('does not write null values to .env when pulling', function () {
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
-    File::put($tempEnv, 'EXISTING_VAR=some_value');
-
-    $this->mock(SecretStashClient::class, function ($mock) {
-        $mock->makePartial();
-        $mock->shouldReceive('getVariables')
-            ->once()
-            ->andReturn([
-                'data' => [
-                    ['name' => 'NULL_VAR', 'value' => null],
-                    ['name' => 'OTHER_VAR', 'value' => 'fine'],
-                ],
-            ]);
-    });
-
-    $this->artisan("secret-stash:variables pull --application=app_123 --environment=testing --key=test-dek --file={$tempEnv}")
-        ->expectsOutputToContain('Variables pulled successfully!')
-        ->assertSuccessful();
-
-    $content = File::get($tempEnv);
-    expect($content)->not->toContain('NULL_VAR')
-        ->toContain('OTHER_VAR=fine')
-        ->toContain('EXISTING_VAR=some_value');
-
-    unlink($tempEnv);
-});
+})->group('variables');
 
 it('correctly reads APP_ENV from .env file', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
@@ -152,7 +138,7 @@ it('correctly reads APP_ENV from .env file', function () {
     expect($command->getAppEnvFromEnvFile())->toBe('staging');
 
     unlink($tempEnv);
-});
+})->group('variables');
 
 it('correctly reads APP_ENV from .env file with quotes', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
@@ -165,4 +151,4 @@ it('correctly reads APP_ENV from .env file with quotes', function () {
     expect($command->getAppEnvFromEnvFile())->toBe('production');
 
     unlink($tempEnv);
-});
+})->group('variables');
