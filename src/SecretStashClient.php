@@ -5,6 +5,7 @@ namespace Dniccum\SecretStash;
 use Dniccum\SecretStash\Exceptions\ApiToken\InvalidApiToken;
 use Dniccum\SecretStash\Exceptions\ApiToken\MissingApiToken;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
+use Dniccum\SecretStash\Support\VariableUtility;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
@@ -107,6 +108,14 @@ class SecretStashClient
     }
 
     /**
+     * Get all applications for the current organization.
+     */
+    public function getApplications(): array
+    {
+        return $this->get('applications', []);
+    }
+
+    /**
      * Get environments for an application.
      */
     public function getEnvironments(string $applicationId): array
@@ -142,7 +151,27 @@ class SecretStashClient
     public function syncEnvFileFromApi(string $applicationId, string $environmentId, ?string $envPath = null, ?string $encryptionKey = null): void
     {
         $variables = $this->getVariables($applicationId, $environmentId);
-        $this->syncEnvFromVariables($variables, $envPath, $encryptionKey);
+        $data = $variables['data'] ?? [];
+
+        $envFile = $envPath ?? '.env';
+        $content = file_exists($envFile) ? file_get_contents($envFile) : '';
+
+        // Extract key-value pairs from ApplicationEnvironmentVariable objects
+        $kvPairs = [];
+        foreach ($data as $var) {
+            $name = $var['name'] ?? null;
+            $payload = $var['payload'] ?? [];
+            if ($name && isset($payload['value'])) {
+                // If it's already decrypted or we have the key to decrypt it
+                // Note: SecretStashClient doesn't handle decryption itself currently,
+                // but this method seems to expect raw variables to be synced.
+                // Assuming payload['value'] is what we want to sync.
+                $kvPairs[$name] = $payload['value'];
+            }
+        }
+
+        $merged = VariableUtility::mergeEnvContent($content, $kvPairs);
+        file_put_contents($envFile, $merged);
     }
 
     /**

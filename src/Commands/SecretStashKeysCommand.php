@@ -85,7 +85,7 @@ class SecretStashKeysCommand extends BasicCommand
             $serverKeys = $response['data'] ?? [];
             $this->line('<fg=green>✓</> Server device keys: <fg=green>'.count($serverKeys).'</>');
 
-            if ($localMeta && $localMeta['fingerprint'] ?? null) {
+            if ($localMeta && ($localMeta['fingerprint'] ?? null)) {
                 $match = collect($serverKeys)->firstWhere('fingerprint', $localMeta['fingerprint']);
                 if ($match) {
                     $this->line('<fg=green>✓</> This device is registered on the server.');

@@ -126,16 +126,16 @@ class SecretStashVariablesCommand extends BasicCommand
         $ignored = $this->ignoredVariables();
         foreach ($variables as $var) {
             try {
-                $name = is_array($var) ? $var['name'] : $var->name;
+                $name = $var->name;
                 if (VariableUtility::isIgnoredVariable($name, $ignored)) {
                     continue;
                 }
 
-                $payload = is_array($var) ? $var['payload'] : $var->payload;
+                $payload = $var->payload;
                 $decryptedValue = CryptoHelper::aesGcmDecrypt($payload, $key);
                 $decryptedVariables[$name] = $decryptedValue;
             } catch (\Exception $e) {
-                $name = is_array($var) ? $var['name'] : $var->name;
+                $name = $var->name;
                 error("Failed to decrypt variable: {$name}");
             }
         }
@@ -344,7 +344,7 @@ class SecretStashVariablesCommand extends BasicCommand
         }
 
         $app = app();
-        if (! method_exists($app, 'bound') || ! $app->bound('config')) {
+        if (! $app->bound('config')) {
             return [];
         }
 
