@@ -42,7 +42,7 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
 
 ## Requirements
 
-- PHP 8.4 or higher
+- PHP 8.2 or higher
 - Laravel 11 or higher
 - A SecretStash API Key
 
@@ -61,7 +61,7 @@ php artisan secret-stash:install
 ```
 
 > [!IMPORTANT]
-> This package creates a `~/.secret-stash/keys.json` file on your machine. Ensure this directory is secure as it contains the keys required to decrypt your environment variables.
+> This package creates a `~/.secret-stash` directory on your machine. Ensure this folder is secure as it contains the keys required to decrypt your environment variables.
 
 ### API Key
 
@@ -84,7 +84,7 @@ SECRET_STASH_APPLICATION_ID=your_application_id_here
 
 ## Configuration
 
-If you have not already, publish the configuration file using `php artisan vendor:publish php artisan vendor:publish --tag=secret-stash-config`. This will create a `config/secret-stash.php` file where you can customize the package's behavior.
+If you have not already, publish the configuration file using `php artisan vendor:publish --tag=secret-stash-config`. This will create a `config/secret-stash.php` file where you can customize the package's behavior.
 
 ### Ignored Variables
 
@@ -124,9 +124,9 @@ php artisan secret-stash:variables pull
 ```
 
 **Options:**
+- `--application`: The unique application ID that identifies your application within SecretStash
 - `--environment`: Specify the environment slug (e.g., `production`). Defaults to the environment that is set in your `APP_ENV` definition.
 - `--file`: The path to the file you want to update (defaults to `.env`).
-- `--key`: Provide a specific encryption key if it's not in your local `keys.json`. *Note: assuming you followed the installation step above, you should not have to use this.*
 
 #### Pushing Variables
 
@@ -140,6 +140,7 @@ php artisan secret-stash:variables push
 
 **Options:**
 
+- `--application`: The unique application ID that identifies your application within SecretStash
 - `--environment`: Specify the destination environment. If the environment doesn't exist, you will be prompted to create it.
 - `--file`: The source file to read (defaults to `.env`).
 
