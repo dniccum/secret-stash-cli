@@ -1,5 +1,6 @@
 <?php
 
+use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Support\Facades\File;
 
