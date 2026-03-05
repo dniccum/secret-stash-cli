@@ -168,19 +168,11 @@ php artisan secret-stash:environments list
 php artisan secret-stash:env
 ```
 
-#### Create Environment
-
-Create a new environment container:
-
-```shell script
-php artisan secret-stash:environments create --name="Staging" --slug="staging" --type="development"
-```
-
 ---
 
 ### Managing Encryption Keys
 
-SecretStash CLI uses client-side encryption. This means your raw values never touch SecretStash's servers; only the encrypted payloads do. Keys are stored locally in `~/.secret-stash/keys.json`.
+SecretStash CLI uses client-side encryption. This means your raw values never touch SecretStash's servers; only the encrypted payloads do. Keys are stored locally in `~/.secret-stash`.
 
 > [!IMPORTANT]
 > This portion of the package is something that you will likely not need. Please be sure to perform the installation command `php artisan secret-stash:install`. This will generate the necessary encryption keys for you.
