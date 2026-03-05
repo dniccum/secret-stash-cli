@@ -15,7 +15,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
 {
     protected $signature = 'secret-stash:envelope
                             {action? : The action to perform (rewrap, repair, reset)}
-                            {--application= : Application ID}
+                            {--application= : The unique application ID that identifies your application within SecretStash}
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
                             {--old-key-file= : Path to the old private key PEM}
                             {--old-device-key-id= : Device key ID associated with the old private key}';

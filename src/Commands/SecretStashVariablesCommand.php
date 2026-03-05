@@ -22,7 +22,7 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected $signature = 'secret-stash:variables
                             {action? : The action to perform (list, pull, push)}
-                            {--application= : Application ID}
+                            {--application= : The unique application ID that identifies your application within SecretStash}
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
                             {--file= : .env file path for pull/push actions}';
 

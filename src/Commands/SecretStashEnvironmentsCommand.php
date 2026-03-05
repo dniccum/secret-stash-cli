@@ -14,7 +14,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
 {
     protected $signature = 'secret-stash:environments
                             {action? : The action to perform (list, create)}
-                            {--application= : Application ID}
+                            {--application= : The unique application ID that identifies your application within SecretStash}
                             {--name= : Name of the environment to create}
                             {--slug= : The environment slug (used to reference the environment in your application configuration)}
                             {--type= : Environment type for create action (local, development, production)}';
