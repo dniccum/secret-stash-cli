@@ -4,7 +4,6 @@ namespace Dniccum\SecretStash\Exceptions\Keys;
 
 class DeviceKeyNotRegistered extends \RuntimeException
 {
-
     public function __construct(
         $message = 'Device key not registered. Run "secret-stash:keys init" first.',
         protected $code = 400,
@@ -21,5 +20,4 @@ class DeviceKeyNotRegistered extends \RuntimeException
     {
         return $this->message;
     }
-
 }

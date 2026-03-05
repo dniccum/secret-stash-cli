@@ -1,6 +1,5 @@
 <?php
 
-use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 
 it('cancels initialization when keys exist locally', function () {

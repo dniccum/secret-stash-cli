@@ -7,7 +7,7 @@ uses(TestCase::class)->in(__DIR__)
     ->beforeEach(function () {
         // Create RSA Pair
         $this->dir = sys_get_temp_dir().'/.secret-stash';
-        if (!is_dir($this->dir)) {
+        if (! is_dir($this->dir)) {
             mkdir($this->dir, 0700, true);
         }
         $pair = CryptoHelper::generateRSAKeyPair();

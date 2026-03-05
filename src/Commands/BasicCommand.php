@@ -102,7 +102,6 @@ abstract class BasicCommand extends Command
     }
 
     /**
-     * @param SecretStashClient $client
      * @return array<ApplicationEnvironmentVariable>|void
      */
     protected function getVariablesForEnvironment(SecretStashClient $client)
@@ -115,6 +114,7 @@ abstract class BasicCommand extends Command
 
             return;
         }
+
         return array_map(fn ($var) => new ApplicationEnvironmentVariable(
             id: $var['id'],
             name: $var['name'],
