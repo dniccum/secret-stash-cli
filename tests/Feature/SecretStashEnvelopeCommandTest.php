@@ -48,14 +48,15 @@ it('resets the environment envelope and displays success output', function () {
         $mock->shouldReceive('storeBulkEnvironmentEnvelopes')
             ->once()
             ->with('app_123', 'env_123', Mockery::on(function ($envelopes) {
-                if (!is_array($envelopes) || count($envelopes) !== 1) {
+                if (! is_array($envelopes) || count($envelopes) !== 1) {
                     return false;
                 }
                 $env = $envelopes[0]['envelope'] ?? null;
-                if (!$env) {
+                if (! $env) {
                     return false;
                 }
                 $opened = CryptoHelper::openEnvelope($env, $this->pair->private_key);
+
                 return strlen($opened) === 32;
             }))
             ->andReturn(['data' => []]);
@@ -96,10 +97,11 @@ it('repairs the environment envelope by falling back to reset', function () {
             ->once()
             ->with('app_123', 'env_123', Mockery::on(function ($envelopes) {
                 $env = $envelopes[0]['envelope'] ?? null;
-                if (!$env) {
+                if (! $env) {
                     return false;
                 }
                 $opened = CryptoHelper::openEnvelope($env, $this->pair->private_key);
+
                 return strlen($opened) === 32;
             }))
             ->andReturn(['data' => []]);
