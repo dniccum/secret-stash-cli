@@ -7,6 +7,7 @@ use Dniccum\SecretStash\SecretStashClient;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
 use function Laravel\Prompts\password;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
@@ -17,7 +18,8 @@ class SecretStashEnvelopeCommand extends BasicCommand
                             {action? : The action to perform (rewrap, repair, reset)}
                             {--application= : Application ID}
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
-                            {--old-key-file= : Path to the old encrypted private key JSON}';
+                            {--old-key-file= : Path to the old private key PEM}
+                            {--old-device-key-id= : Device key ID associated with the old private key}';
 
     protected $description = 'Rewrap environment key envelopes';
 
@@ -37,7 +39,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
                 'reset' => $this->resetEnvelope($client),
                 default => $this->invalidAction($action),
             };
-        } catch (\Exception $e) {
+        } catch (\Exception|\Throwable $e) {
             error('Error: '.$e->getMessage());
 
             return self::FAILURE;
@@ -46,35 +48,33 @@ class SecretStashEnvelopeCommand extends BasicCommand
 
     protected function rewrapEnvelope(SecretStashClient $client): int
     {
-        $environmentId = $this->getEnvironmentId($client);
-        $keysCommand = new SecretStashKeysCommand;
-        $deviceKeyId = $keysCommand->getDeviceKeyId();
+        $oldDeviceKeyId = $this->resolveOldDeviceKeyId();
 
         info('Fetching environment envelope...');
 
-        $response = $client->getEnvironmentEnvelope($this->applicationId, $environmentId, $deviceKeyId);
+        $response = $client->getEnvironmentEnvelope($this->applicationId, $this->environmentSlug, $oldDeviceKeyId);
         $envelope = $response['data']['envelope'] ?? null;
 
         if (! $envelope) {
-            error('No envelope found for this environment.');
+            error('No envelope found for the old device key.');
 
             return self::FAILURE;
         }
 
-        $privateKeyPayload = $this->loadOldPrivateKeyPayload();
-        $privateKeyPassword = $this->resolveOldPrivateKeyPassword();
-        $oldPrivateKey = CryptoHelper::decryptPrivateKey($privateKeyPayload, $privateKeyPassword);
+        $oldPrivateKey = $this->loadOldPrivateKey();
         $dek = CryptoHelper::openEnvelope($envelope, $oldPrivateKey);
 
-        $userKeysResponse = $client->getUserKeys();
-        $publicKey = $userKeysResponse['data']['public_key'] ?? null;
-
-        if (! $publicKey) {
-            throw new \RuntimeException('No user keys found. Run "secret-stash:keys init" first.');
-        }
+        $keysCommand = new SecretStashKeysCommand;
+        $currentDeviceKeyId = $keysCommand->getDeviceKeyId();
+        $publicKey = $keysCommand->getDevicePublicKey();
 
         $newEnvelope = CryptoHelper::createEnvelope($dek, $publicKey);
-        $client->storeEnvironmentEnvelope($this->applicationId, $environmentId, $deviceKeyId, $newEnvelope);
+        $client->storeEnvironmentEnvelope(
+            $this->applicationId,
+            $this->environmentSlug,
+            $currentDeviceKeyId,
+            $newEnvelope
+        );
         $this->printSuccess();
 
         return self::SUCCESS;
@@ -85,11 +85,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
         try {
             return $this->rewrapEnvelope($client);
         } catch (\Throwable $e) {
-            $confirm = confirm(
-                label: 'Unable to rewrap the envelope. Reset the environment key and continue?',
-                default: false
-            );
-            if (! $confirm) {
+            if (! $this->confirmResetAfterFailure()) {
                 return self::FAILURE;
             }
 
@@ -99,35 +95,37 @@ class SecretStashEnvelopeCommand extends BasicCommand
 
     protected function resetEnvelope(SecretStashClient $client): int
     {
-        $environmentId = $this->getEnvironmentId($client);
-        $keysCommand = new SecretStashKeysCommand;
-        $deviceKeyId = $keysCommand->getDeviceKeyId();
-
         $userKeysResponse = $client->getUserKeys();
-        $publicKey = $userKeysResponse['data']['public_key'] ?? null;
+        $deviceKeys = $userKeysResponse['data'] ?? [];
 
-        if (! $publicKey) {
-            throw new \RuntimeException('No user keys found. Run "secret-stash:keys init" first.');
+        if (empty($deviceKeys)) {
+            throw new \RuntimeException('No device keys found. Run "secret-stash:keys init" first.');
         }
 
         $dek = CryptoHelper::generateKey();
-        $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
-        $client->storeEnvironmentEnvelope($this->applicationId, $environmentId, $deviceKeyId, $envelope);
+        $envelopes = [];
 
-        $this->newLine();
-        $this->line('<fg=green;options=bold>✓</> Environment key reset successfully!');
-        $this->line('<fg=yellow>Next:</> Re-upload your variables to encrypt them with the new key.');
-        $this->newLine();
+        foreach ($deviceKeys as $deviceKey) {
+            $envelopes[] = [
+                'device_key_id' => $deviceKey['id'],
+                'envelope' => CryptoHelper::createEnvelope($dek, $deviceKey['public_key']),
+            ];
+        }
+
+        $client->storeBulkEnvironmentEnvelopes(
+            $this->applicationId,
+            $this->environmentSlug,
+            $envelopes
+        );
+
+        $this->printResetSuccess();
 
         return self::SUCCESS;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    protected function loadOldPrivateKeyPayload(): array
+    protected function loadOldPrivateKey(): string
     {
-        $path = $this->resolveOldPrivateKeyPayloadPath();
+        $path = $this->resolveOldPrivateKeyPath();
         $path = $this->expandHomePath($path);
 
         if (! file_exists($path)) {
@@ -139,15 +137,10 @@ class SecretStashEnvelopeCommand extends BasicCommand
             throw new \RuntimeException('Failed to read the old private key file.');
         }
 
-        $payload = json_decode($content, true);
-        if (! is_array($payload)) {
-            throw new \RuntimeException('Old private key payload is invalid.');
-        }
-
-        return $payload;
+        return $content;
     }
 
-    protected function resolveOldPrivateKeyPayloadPath(): string
+    protected function resolveOldPrivateKeyPath(): string
     {
         $path = $this->option('old-key-file');
         if ($path) {
@@ -157,19 +150,34 @@ class SecretStashEnvelopeCommand extends BasicCommand
         $defaultPath = $this->defaultPrivateKeyPath();
 
         return text(
-            label: 'Path to the old encrypted private key JSON',
+            label: 'Path to the old private key PEM',
             placeholder: $defaultPath,
             default: $defaultPath,
             required: true
         );
     }
 
-    protected function resolveOldPrivateKeyPassword(): string
+    protected function resolveOldDeviceKeyId(): int
     {
-        return password(
-            label: 'Enter the old private key password',
+        $id = $this->option('old-device-key-id');
+        if ($id) {
+            return (int) $id;
+        }
+
+        $value = text(
+            label: 'Old device key ID',
+            placeholder: '123',
             required: true
         );
+
+        return (int) $value;
+    }
+
+    protected function defaultPrivateKeyPath(): string
+    {
+        $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
+
+        return $homeDir.'/.secret-stash/device_private_key.pem';
     }
 
     protected function expandHomePath(string $path): string
@@ -183,10 +191,34 @@ class SecretStashEnvelopeCommand extends BasicCommand
         return $homeDir.substr($path, 1);
     }
 
+    protected function confirmResetAfterFailure(): bool
+    {
+        return confirm(
+            label: 'Unable to rewrap the envelope. Reset the environment key and continue?',
+            default: false
+        );
+    }
+
     protected function printSuccess(): void
     {
+        if (! $this->output) {
+            return;
+        }
+
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Envelope rewrapped successfully!');
+        $this->newLine();
+    }
+
+    protected function printResetSuccess(): void
+    {
+        if (! $this->output) {
+            return;
+        }
+
+        $this->newLine();
+        $this->line('<fg=green;options=bold>✓</> Environment key reset successfully!');
+        $this->line('<fg=yellow>Next:</> Re-upload your variables to encrypt them with the new key.');
         $this->newLine();
     }
 }

@@ -3,59 +3,33 @@
 use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 
-function seedDeviceForEnvelope(): array {
-    $dir = sys_get_temp_dir().'/.secret-stash';
-    if (! is_dir($dir)) {
-        mkdir($dir, 0700, true);
-    }
-    $pair = CryptoHelper::generateRSAKeyPair();
-    file_put_contents($dir.'/device_private_key.pem', $pair['private_key']);
-    file_put_contents($dir.'/device.json', json_encode([
-        'device_key_id' => 123,
-        'label' => 'Test Device',
-        'public_key' => $pair['public_key'],
-        'fingerprint' => CryptoHelper::fingerprint($pair['public_key']),
-    ]));
-
-    return $pair;
-}
-
 it('rewraps the environment envelope with a new user key', function () {
-    $password = 'old-password';
     $oldKeyPair = CryptoHelper::generateRSAKeyPair();
-    $newKeyPair = CryptoHelper::generateRSAKeyPair();
     $dek = CryptoHelper::generateKey();
-    $oldEnvelope = CryptoHelper::createEnvelope($dek, $oldKeyPair['public_key']);
+    $oldEnvelope = CryptoHelper::createEnvelope($dek, $oldKeyPair->public_key);
 
-    // Seed current device
-    seedDeviceForEnvelope();
-
-    $payload = CryptoHelper::encryptPrivateKey($oldKeyPair['private_key'], $password);
+    // Write old private key PEM to temp file
     $tempFile = tempnam(sys_get_temp_dir(), 'old_key_');
-    file_put_contents($tempFile, json_encode($payload));
+    file_put_contents($tempFile, $oldKeyPair->private_key);
 
-    $this->mock(SecretStashClient::class, function ($mock) use ($oldEnvelope, $newKeyPair, $dek) {
+    $this->mock(SecretStashClient::class, function ($mock) use ($oldEnvelope, $dek) {
+        // Use old-device-key-id=999 for fetching old envelope
         $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
-            ->with('app_123', 'env_123', 123)
+            ->with('app_123', 'env_123', 999)
             ->andReturn(['data' => ['envelope' => $oldEnvelope]]);
-
-        $mock->shouldReceive('getUserKeys')
-            ->once()
-            ->andReturn(['data' => ['public_key' => $newKeyPair['public_key']]]);
 
         $mock->shouldReceive('storeEnvironmentEnvelope')
             ->once()
-            ->with('app_123', 'env_123', 123, Mockery::on(function ($payload) use ($newKeyPair, $dek) {
-                $opened = CryptoHelper::openEnvelope($payload, $newKeyPair['private_key']);
+            ->with('app_123', 'env_123', 123, Mockery::on(function ($payload) use ($dek) {
+                $opened = CryptoHelper::openEnvelope($payload, $this->pair->private_key);
 
                 return $opened === $dek;
             }))
             ->andReturn(['data' => []]);
     });
 
-    $this->artisan('secret-stash:envelope rewrap --environment=env_123 --old-key-file='.$tempFile)
-        ->expectsQuestion('Enter the old private key password', $password)
+    $this->artisan('secret-stash:envelope rewrap --environment=env_123 --old-key-file='.$tempFile.' --old-device-key-id=999')
         ->expectsOutputToContain('Envelope rewrapped successfully!')
         ->assertSuccessful();
 
@@ -63,21 +37,25 @@ it('rewraps the environment envelope with a new user key', function () {
 });
 
 it('resets the environment envelope and displays success output', function () {
-    $keyPair = CryptoHelper::generateRSAKeyPair();
-
-    // Seed current device
-    seedDeviceForEnvelope();
-
-    $this->mock(SecretStashClient::class, function ($mock) use ($keyPair) {
+    $this->mock(SecretStashClient::class, function ($mock) {
+        // Reset now creates envelopes for all device keys returned
         $mock->shouldReceive('getUserKeys')
             ->once()
-            ->andReturn(['data' => ['public_key' => $keyPair['public_key']]]);
+            ->andReturn(['data' => [
+                ['id' => 123, 'public_key' => $this->pair->public_key],
+            ]]);
 
-        $mock->shouldReceive('storeEnvironmentEnvelope')
+        $mock->shouldReceive('storeBulkEnvironmentEnvelopes')
             ->once()
-            ->with('app_123', 'env_123', 123, Mockery::on(function ($payload) use ($keyPair) {
-                $opened = CryptoHelper::openEnvelope($payload, $keyPair['private_key']);
-
+            ->with('app_123', 'env_123', Mockery::on(function ($envelopes) {
+                if (!is_array($envelopes) || count($envelopes) !== 1) {
+                    return false;
+                }
+                $env = $envelopes[0]['envelope'] ?? null;
+                if (!$env) {
+                    return false;
+                }
+                $opened = CryptoHelper::openEnvelope($env, $this->pair->private_key);
                 return strlen($opened) === 32;
             }))
             ->andReturn(['data' => []]);
@@ -90,44 +68,44 @@ it('resets the environment envelope and displays success output', function () {
 });
 
 it('repairs the environment envelope by falling back to reset', function () {
-    $password = 'old-password';
     $oldKeyPair = CryptoHelper::generateRSAKeyPair();
-    $newKeyPair = CryptoHelper::generateRSAKeyPair();
     $dek = CryptoHelper::generateKey();
-    $oldEnvelope = CryptoHelper::createEnvelope($dek, $oldKeyPair['public_key']);
 
-    // Seed current device
-    seedDeviceForEnvelope();
+    // Create an envelope that cannot be opened by the provided old private key to force fallback
+    $mismatchPair = CryptoHelper::generateRSAKeyPair();
+    $badEnvelope = CryptoHelper::createEnvelope($dek, $mismatchPair->public_key);
 
-    $payload = CryptoHelper::encryptPrivateKey($oldKeyPair['private_key'], $password);
+    // Write old private key PEM to temp file
     $tempFile = tempnam(sys_get_temp_dir(), 'old_key_');
-    file_put_contents($tempFile, json_encode($payload));
+    file_put_contents($tempFile, $oldKeyPair->private_key);
 
-    $this->mock(SecretStashClient::class, function ($mock) use ($oldEnvelope, $newKeyPair) {
+    $this->mock(SecretStashClient::class, function ($mock) use ($badEnvelope) {
         $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
-            ->with('app_123', 'env_123', 123)
-            ->andReturn(['data' => ['envelope' => $oldEnvelope]]);
+            ->with('app_123', 'env_123', 111)
+            ->andReturn(['data' => ['envelope' => $badEnvelope]]);
 
+        // After fallback, reset creates envelopes for all device keys
         $mock->shouldReceive('getUserKeys')
-            ->twice()
-            ->andReturn(
-                ['data' => []],
-                ['data' => ['public_key' => $newKeyPair['public_key']]]
-            );
-
-        $mock->shouldReceive('storeEnvironmentEnvelope')
             ->once()
-            ->with('app_123', 'env_123', 123, Mockery::on(function ($payload) use ($newKeyPair) {
-                $opened = CryptoHelper::openEnvelope($payload, $newKeyPair['private_key']);
+            ->andReturn(['data' => [
+                ['id' => 123, 'public_key' => $this->pair->public_key],
+            ]]);
 
+        $mock->shouldReceive('storeBulkEnvironmentEnvelopes')
+            ->once()
+            ->with('app_123', 'env_123', Mockery::on(function ($envelopes) {
+                $env = $envelopes[0]['envelope'] ?? null;
+                if (!$env) {
+                    return false;
+                }
+                $opened = CryptoHelper::openEnvelope($env, $this->pair->private_key);
                 return strlen($opened) === 32;
             }))
             ->andReturn(['data' => []]);
     });
 
-    $this->artisan('secret-stash:envelope repair --environment=env_123 --old-key-file='.$tempFile)
-        ->expectsQuestion('Enter the old private key password', $password)
+    $this->artisan('secret-stash:envelope repair --environment=env_123 --old-key-file='.$tempFile.' --old-device-key-id=111')
         ->expectsConfirmation('Unable to rewrap the envelope. Reset the environment key and continue?', 'yes')
         ->expectsOutputToContain('Environment key reset successfully!')
         ->assertSuccessful();
