@@ -2,23 +2,23 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Commands\Traits\UsesApplicationId;
 use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\password;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 class SecretStashShareCommand extends BasicCommand
 {
+    use UsesApplicationId;
+
     protected $signature = 'secret-stash:share
-                            {--organization= : Organization ID}
                             {--application= : Application ID}
-                            {--environment= : Environment ID}';
+                            {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}';
 
     protected $description = 'Share an environment with team members';
 
@@ -27,18 +27,18 @@ class SecretStashShareCommand extends BasicCommand
         try {
             $this->setEnvironment();
 
-            $environmentId = $this->getEnvironmentId($client);
+            $environmentSlug = $this->environmentSlug;
 
             $this->newLine();
             $this->line('<fg=cyan;options=bold>Environment Sharing Status</>');
             $this->newLine();
 
-            // Get all members and their envelope status
-            $response = $client->getEnvironmentEnvelopes($environmentId);
-            $members = $response['data']['members'] ?? [];
+            // Get all device keys and their envelope status
+            $response = $client->getEnvironmentEnvelopes($this->applicationId, $environmentSlug);
+            $deviceKeys = $response['data']['device_keys'] ?? [];
 
-            if (empty($members)) {
-                error('No organization members found.');
+            if (empty($deviceKeys)) {
+                error('No device keys found for this environment.');
 
                 return self::FAILURE;
             }
@@ -46,39 +46,39 @@ class SecretStashShareCommand extends BasicCommand
             // Display current status
             $statusRows = [];
             $needsEnvelope = [];
-            foreach ($members as $member) {
-                $status = $member['has_envelope'] ? '<fg=green>✓ Has Access</>' : '<fg=yellow>⚠ Needs Access</>';
-                $keyStatus = $member['has_public_key'] ? '<fg=green>✓</>' : '<fg=red>✗</>';
+            foreach ($deviceKeys as $deviceKey) {
+                $status = $deviceKey['has_envelope'] ? '<fg=green>✓ Has Access</>' : '<fg=yellow>⚠ Needs Access</>';
 
                 $statusRows[] = [
-                    $member['name'],
-                    $member['email'],
-                    $keyStatus,
+                    $deviceKey['name'],
+                    $deviceKey['email'],
+                    $deviceKey['label'],
+                    $deviceKey['key_type'],
                     $status,
                 ];
 
-                if ($member['needs_envelope']) {
-                    $needsEnvelope[] = $member;
+                if ($deviceKey['needs_envelope']) {
+                    $needsEnvelope[] = $deviceKey;
                 }
             }
 
             table(
-                ['Name', 'Email', 'Has Key', 'Access Status'],
+                ['Name', 'Email', 'Device', 'Type', 'Access Status'],
                 $statusRows
             );
 
             if (empty($needsEnvelope)) {
                 $this->newLine();
-                info('All team members with keys already have access to this environment!');
+                info('All device keys already have access to this environment!');
 
                 return self::SUCCESS;
             }
 
             $this->newLine();
-            info(count($needsEnvelope).' team member(s) need access to this environment.');
+            info(count($needsEnvelope).' device key(s) need access to this environment.');
 
             $share = confirm(
-                label: 'Grant access to these members?',
+                label: 'Grant access to these device keys?',
                 default: true
             );
 
@@ -88,18 +88,11 @@ class SecretStashShareCommand extends BasicCommand
                 return self::SUCCESS;
             }
 
-            // Get user's password to decrypt private key
-            $this->newLine();
-            $userPassword = password(
-                label: 'Enter your private key password to decrypt the environment key',
-                required: true
-            );
-
-            // Decrypt user's private key
-            $privateKey = $keysCommand->getDecryptedPrivateKey($userPassword);
+            $privateKey = $keysCommand->getPrivateKey();
+            $deviceKeyId = $keysCommand->getDeviceKeyId();
 
             // Get user's envelope for this environment
-            $envelopeResponse = $client->getEnvironmentEnvelope($environmentId);
+            $envelopeResponse = $client->getEnvironmentEnvelope($this->applicationId, $environmentSlug, $deviceKeyId);
             $userEnvelope = $envelopeResponse['data']['envelope'] ?? null;
 
             if (! $userEnvelope) {
@@ -115,16 +108,16 @@ class SecretStashShareCommand extends BasicCommand
             // Create envelopes for each user who needs access
             $envelopes = [];
 
-            foreach ($needsEnvelope as $member) {
+            foreach ($needsEnvelope as $deviceKey) {
                 try {
                     // Create envelope encrypted for this user's public key
-                    $envelope = CryptoHelper::createEnvelope($dek, $member['public_key']);
+                    $envelope = CryptoHelper::createEnvelope($dek, $deviceKey['public_key']);
                     $envelopes[] = [
-                        'user_id' => $member['user_id'],
+                        'device_key_id' => $deviceKey['device_key_id'],
                         'envelope' => $envelope,
                     ];
                 } catch (\Exception $e) {
-                    error("Failed to create envelope for {$member['name']}: ".$e->getMessage());
+                    error("Failed to create envelope for {$deviceKey['name']}: ".$e->getMessage());
                 }
             }
 
@@ -136,8 +129,8 @@ class SecretStashShareCommand extends BasicCommand
 
             // Upload envelopes in bulk
             $result = spin(
-                callback: fn () => $client->storeBulkEnvironmentEnvelopes($environmentId, $envelopes),
-                message: 'Creating envelopes for team members...'
+                callback: fn () => $client->storeBulkEnvironmentEnvelopes($this->applicationId, $environmentSlug, $envelopes),
+                message: 'Creating envelopes for device keys...'
             );
 
             $this->newLine();
@@ -161,42 +154,5 @@ class SecretStashShareCommand extends BasicCommand
 
             return self::FAILURE;
         }
-    }
-
-    protected function getApplicationId(): string
-    {
-        $applicationId = $this->option('application');
-
-        if (empty($applicationId)) {
-            $applicationId = config('secret-stash.application_id');
-        }
-
-        return $applicationId;
-    }
-
-    protected function getEnvironmentId(SecretStashClient $client): string
-    {
-        $environmentId = $this->environmentSlug ?? $this->option('environment');
-
-        if (! $environmentId) {
-            $response = $client->getEnvironments($this->applicationId);
-            $environments = $response['data'] ?? [];
-
-            if (empty($environments)) {
-                throw new \RuntimeException('No environments found.');
-            }
-
-            $choices = [];
-            foreach ($environments as $env) {
-                $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
-            }
-
-            $environmentId = select(
-                label: 'Select an environment',
-                options: $choices
-            );
-        }
-
-        return $environmentId;
     }
 }

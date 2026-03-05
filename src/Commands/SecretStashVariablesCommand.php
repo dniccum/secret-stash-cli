@@ -2,29 +2,38 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Commands\Traits\UsesApplicationId;
+use Dniccum\SecretStash\Contracts\ApplicationEnvironmentVariable;
 use Dniccum\SecretStash\Crypto\CryptoHelper;
-use Dniccum\SecretStash\Exceptions\Environments\NoEnvironmentsFound;
-use Dniccum\SecretStash\Exceptions\Keys\PrivateKeyNotFound;
 use Dniccum\SecretStash\SecretStashClient;
+use Dniccum\SecretStash\Support\VariableUtility;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\password;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
 class SecretStashVariablesCommand extends BasicCommand
 {
+    use UsesApplicationId;
+
+    protected VariableUtility $variableUtility;
+
     protected $signature = 'secret-stash:variables
                             {action? : The action to perform (list, pull, push)}
                             {--application= : Application ID}
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
-                            {--file= : .env file path for pull/push actions}
-                            {--key= : Encryption key for pull/push actions}';
+                            {--file= : .env file path for pull/push actions}';
 
     protected $description = 'Manage SecretStash environment variables';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->variableUtility = new VariableUtility($this->ignoredVariables());
+    }
 
     public function handle(SecretStashClient $client): int
     {
@@ -37,7 +46,7 @@ class SecretStashVariablesCommand extends BasicCommand
                 'list' => $this->listVariables($client),
                 'pull' => $this->pullVariables($client),
                 'push' => $this->pushVariables($client),
-                default => error("Unknown action: {$action}"),
+                default => $this->invalidAction($action),
             };
 
             return self::SUCCESS;
@@ -48,41 +57,45 @@ class SecretStashVariablesCommand extends BasicCommand
         }
     }
 
+    protected function resolvePrivateKey(SecretStashKeysCommand $keysCommand): string
+    {
+        return $keysCommand->getPrivateKey();
+    }
+
+    protected function makeKeysCommand(): SecretStashKeysCommand
+    {
+        return new SecretStashKeysCommand;
+    }
+
     /**
      * @throws \Exception
      */
     protected function listVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->environmentSlug;
         $key = $this->getEnvironmentKey($environmentId, $client);
-        info('Fetching variables...');
 
-        $response = $client->getVariables($this->applicationId, $this->environmentSlug);
-        $variables = $response['data'] ?? [];
+        info('Fetching variables from SecretStash...');
 
-        if (empty($variables)) {
-            info('No variables found.');
-
-            return;
-        }
+        $variables = $this->getVariablesForEnvironment($client);
 
         $this->newLine();
         $this->line('<fg=cyan;options=bold>Environment Variables</>');
         $this->newLine();
 
-        $rows = array_map(function ($var) use ($key) {
+        $rows = array_map(function (ApplicationEnvironmentVariable $var) use ($key) {
             $decryptedValue = '[Error decrypting]';
             try {
-                $decryptedValue = CryptoHelper::aesGcmDecrypt($var['payload'], $key);
+                $decryptedValue = CryptoHelper::aesGcmDecrypt($var->payload, $key);
             } catch (\Exception $e) {
                 // Keep the error message
             }
 
             return [
-                $var['id'],
-                $var['name'],
+                $var->id,
+                $var->name,
                 str_repeat('•', min(strlen($decryptedValue), 20)),
-                $var['created_at'],
+                $var->created_at,
             ];
         }, $variables);
 
@@ -95,51 +108,52 @@ class SecretStashVariablesCommand extends BasicCommand
         info('Total: '.count($variables).' variable(s)');
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function pullVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->environmentSlug;
         $key = $this->getEnvironmentKey($environmentId, $client);
+
         $filePath = $this->option('file') ?? '.env';
 
         info('Fetching variables from SecretStash...');
 
-        $applicationId = $this->applicationId;
-        $environmentId = $this->environmentSlug;
+        $variables = $this->getVariablesForEnvironment($client);
 
-        $rawKey = null;
-        if ($key) {
-            if (strlen($key) === 32) {
-                $rawKey = $key;
-            } else {
-                try {
-                    $rawKey = CryptoHelper::base64urlDecode($key);
-                } catch (\Throwable $e) {
-                    // Fallback or ignore
+        $decryptedVariables = [];
+        $ignored = $this->ignoredVariables();
+        foreach ($variables as $var) {
+            try {
+                $name = is_array($var) ? $var['name'] : $var->name;
+                if (VariableUtility::isIgnoredVariable($name, $ignored)) {
+                    continue;
                 }
+
+                $payload = is_array($var) ? $var['payload'] : $var->payload;
+                $decryptedValue = CryptoHelper::aesGcmDecrypt($payload, $key);
+                $decryptedVariables[$name] = $decryptedValue;
+            } catch (\Exception $e) {
+                $name = is_array($var) ? $var['name'] : $var->name;
+                error("Failed to decrypt variable: {$name}");
             }
         }
 
-        $response = $client->getVariables($applicationId, $environmentId);
-        $variables = $response['data'] ?? [];
-
-        if (empty($variables)) {
-            info('No variables found.');
-
-            return;
-        }
-
-        $client->syncEnvFromVariables($variables, $filePath, $rawKey ? CryptoHelper::base64urlEncode($rawKey) : null);
+        $existingContent = file_exists($filePath) ? file_get_contents($filePath) : '';
+        $mergedContent = VariableUtility::mergeEnvContent($existingContent ?: '', $decryptedVariables);
+        file_put_contents($filePath, $mergedContent);
 
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Variables pulled successfully!');
         $this->line('<fg=yellow>File:</> '.$filePath);
-        $this->line('<fg=yellow>Variables:</> '.count($variables));
+        $this->line('<fg=yellow>Variables:</> '.count($decryptedVariables));
         $this->newLine();
     }
 
     protected function pushVariables(SecretStashClient $client): void
     {
-        $environmentId = $this->getEnvironmentId($client, $this->applicationId);
+        $environmentId = $this->environmentSlug;
         $key = $this->getEnvironmentKey($environmentId, $client);
 
         $filePath = $this->option('file') ?? '.env';
@@ -153,27 +167,8 @@ class SecretStashVariablesCommand extends BasicCommand
         info('Reading .env file...');
 
         $content = file_get_contents($filePath);
-        $lines = explode("\n", $content);
-        $variables = [];
-
-        foreach ($lines as $line) {
-            $trimmedLine = trim($line);
-            if (empty($trimmedLine) || str_starts_with($trimmedLine, '#')) {
-                continue;
-            }
-
-            $parts = explode('=', $trimmedLine, 2);
-            if (count($parts) === 2) {
-                $variableName = trim($parts[0]);
-                $value = trim($parts[1]);
-
-                if (str_starts_with($variableName, 'SECRET_STASH_') || in_array($variableName, config('secret-stash.ignored_variables', []), true)) {
-                    continue;
-                }
-
-                $variables[$variableName] = $value;
-            }
-        }
+        $variables = VariableUtility::parseEnvContent($content ?: '');
+        $variables = $this->variableUtility->filter($variables);
 
         if (empty($variables)) {
             error('No variables found in file.');
@@ -242,97 +237,6 @@ class SecretStashVariablesCommand extends BasicCommand
         $this->newLine();
     }
 
-    protected function getEnvironmentId(SecretStashClient $client, string $applicationId): string
-    {
-        if (app()->runningUnitTests()) {
-            return $this->option('environment') ?? 'env_123';
-        }
-
-        $response = $client->getEnvironments($applicationId);
-        $environments = $response['data'] ?? [];
-
-        if (empty($environments)) {
-            throw new NoEnvironmentsFound('No environments found for application ID '.$applicationId.'.');
-        }
-
-        $choices = [];
-        foreach ($environments as $env) {
-            if ($env['slug'] === $this->environmentSlug) {
-                return $env['id'];
-            }
-            $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
-        }
-
-        $environmentId = select(
-            label: 'Select an environment',
-            options: $choices
-        );
-
-        return $environmentId;
-    }
-
-    protected function getEnvironmentKey(string $environmentId, SecretStashClient $client): string
-    {
-        if (app()->runningUnitTests()) {
-            return $this->option('key') ?? 'test-dek';
-        }
-
-        // Try to get envelope from server
-        try {
-            $response = $client->getEnvironmentEnvelope($environmentId);
-            $envelope = $response['data']['envelope'] ?? null;
-
-            if ($envelope) {
-                // Decrypt envelope to get DEK
-                $keysCommand = new SecretStashKeysCommand;
-                $userPassword = password(
-                    label: 'Enter your private key password',
-                    required: true
-                );
-
-                $privateKey = $keysCommand->getDecryptedPrivateKey($userPassword);
-
-                return CryptoHelper::openEnvelope($envelope, $privateKey);
-            }
-        } catch (\Exception $e) {
-            // Envelope not found - need to create it
-        }
-
-        // No envelope exists - first time setup for this environment
-        info('No envelope found. Creating new environment encryption key...');
-
-        // Generate new DEK
-        $dek = CryptoHelper::generateKey();
-
-        // Get user's keys to create envelope
-        $keysCommand = new SecretStashKeysCommand;
-        $userPassword = password(
-            label: 'Enter your private key password',
-            required: true
-        );
-
-        // Get user's public key and create envelope
-        try {
-            $userKeysResponse = $client->getUserKeys();
-            $publicKey = $userKeysResponse['data']['public_key'] ?? null;
-
-            if (! $publicKey) {
-                throw new PrivateKeyNotFound('No user keys found. Run "secret-stash:keys init" first.');
-            }
-
-            // Create and upload envelope
-            $envelope = CryptoHelper::createEnvelope($dek, $publicKey);
-            $client->storeEnvironmentEnvelope($environmentId, $envelope);
-
-            info('Environment key created and secured with your encryption key.');
-
-            return $dek;
-        } catch (\Exception $e) {
-            error('Failed to create envelope: '.$e->getMessage());
-            throw $e;
-        }
-    }
-
     protected function getAppEnvFromEnvFile(): ?string
     {
         $filePath = $this->option('file') ?? '.env';
@@ -376,5 +280,76 @@ class SecretStashVariablesCommand extends BasicCommand
             '--slug' => $this->environmentSlug,
         ]);
         info('Environment successfully created. Continuing with push...');
+    }
+
+    protected function getEnvironmentKey(string $environmentId, SecretStashClient $client): string
+    {
+        $keysCommand = $this->makeKeysCommand();
+        $deviceKeyId = $keysCommand->getDeviceKeyId();
+
+        $response = $client->getEnvironmentEnvelope($this->applicationId, $environmentId, $deviceKeyId);
+        $envelope = $response['data']['envelope'] ?? null;
+
+        if ($envelope) {
+            $privateKey = $this->resolvePrivateKey($keysCommand);
+
+            try {
+                return CryptoHelper::openEnvelope($envelope, $privateKey);
+            } catch (\Throwable $e) {
+                throw new \RuntimeException('Unable to decrypt environment key. Verify your device key or run "secret-stash:envelope repair" if needed.');
+            }
+        }
+
+        // No envelope exists - first time setup for this environment
+        info('No envelope found. Creating new environment encryption key...');
+
+        // Generate new DEK
+        $dek = CryptoHelper::generateKey();
+        // Get user's device keys and create envelopes
+        // Get user's public key and create envelope
+        try {
+            $userKeysResponse = $client->getUserKeys();
+            $deviceKeys = $userKeysResponse['data'] ?? [];
+
+            if (empty($deviceKeys)) {
+                throw new \RuntimeException('No device keys found. Run "secret-stash:keys init" first.');
+            }
+
+            $envelopes = [];
+            foreach ($deviceKeys as $deviceKey) {
+                $envelopes[] = [
+                    'device_key_id' => $deviceKey['id'],
+                    'envelope' => CryptoHelper::createEnvelope($dek, $deviceKey['public_key']),
+                ];
+            }
+
+            $client->storeBulkEnvironmentEnvelopes($this->applicationId, $environmentId, $envelopes);
+
+            info('Environment key created and secured for your devices.');
+
+            return $dek;
+        } catch (\Exception $e) {
+            error('Failed to create envelope: '.$e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function ignoredVariables(): array
+    {
+        if (! function_exists('app')) {
+            return [];
+        }
+
+        $app = app();
+        if (! method_exists($app, 'bound') || ! $app->bound('config')) {
+            return [];
+        }
+
+        $ignored = $app->make('config')->get('secret-stash.ignored_variables', []);
+
+        return is_array($ignored) ? array_values($ignored) : [];
     }
 }

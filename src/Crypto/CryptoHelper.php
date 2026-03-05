@@ -2,6 +2,8 @@
 
 namespace Dniccum\SecretStash\Crypto;
 
+use Dniccum\SecretStash\Contracts\RSAKeyPair;
+
 class CryptoHelper
 {
     public static function base64urlEncode(string $data): string
@@ -86,10 +88,28 @@ class CryptoHelper
         return random_bytes(32);
     }
 
+    public static function fingerprint(string $publicKey): string
+    {
+        return hash('sha256', $publicKey);
+    }
+
+    public static function encodeRecoveryShare(string $privateKey, string $fingerprint): string
+    {
+        $payload = [
+            'v' => 1,
+            'type' => 'secret-stash-recovery',
+            'alg' => 'RSA-OAEP',
+            'fingerprint' => $fingerprint,
+            'private_key' => self::base64urlEncode($privateKey),
+        ];
+
+        return 'SSREC1-'.self::base64urlEncode(json_encode($payload));
+    }
+
     /**
      * Generate RSA-4096 key pair for user encryption.
      */
-    public static function generateRSAKeyPair(): array
+    public static function generateRSAKeyPair(): RSAKeyPair
     {
         $config = [
             'private_key_bits' => 4096,
@@ -108,10 +128,7 @@ class CryptoHelper
         $publicKeyDetails = openssl_pkey_get_details($res);
         $publicKey = $publicKeyDetails['key'];
 
-        return [
-            'private_key' => $privateKey,
-            'public_key' => $publicKey,
-        ];
+        return new RSAKeyPair($privateKey, $publicKey);
     }
 
     /**

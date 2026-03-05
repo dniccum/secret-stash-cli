@@ -35,7 +35,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
             match ($action) {
                 'list' => $this->listEnvironments($client),
                 'create' => $this->createEnvironment($client),
-                default => error("Unknown action: {$action}"),
+                default => $this->invalidAction($action),
             };
 
             return self::SUCCESS;
