@@ -23,10 +23,19 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
     - [**Managing Environments**](#managing-environments)
         - [List Environments](#list-environments) (`secret-stash:environments list`)
         - [Create Environment](#create-environment) (`secret-stash:environments create`)
+        - [Share Environment](#share-environment) (`secret-stash:share`)
     - [**Managing Encryption Keys**](#managing-encryption-keys)
         - [Generate a Key](#generate-a-key) (`secret-stash:keys generate`)
         - [Set an Existing Key](#set-an-existing-key) (`secret-stash:keys set`)
         - [List Keys](#list-keys) (`secret-stash:keys list`)
+        - [Device Status](#device-status) (`secret-stash:keys status`)
+        - [Initialize Device](#initialize-device) (`secret-stash:keys init`)
+        - [Sync Device](#sync-device) (`secret-stash:keys sync`)
+        - [Key Recovery](#key-recovery) (`secret-stash:keys recovery`)
+    - [**Managing Envelopes**](#managing-envelopes)
+        - [Rewrap Envelope](#rewrap-envelope) (`secret-stash:envelope rewrap`)
+        - [Repair Envelope](#repair-envelope) (`secret-stash:envelope repair`)
+        - [Reset Envelope](#reset-envelope) (`secret-stash:envelope reset`)
 - [**Changelog**](#changelog)
 - [**Contributing**](#contributing)
 - [**Credits**](#credits)
@@ -168,6 +177,34 @@ php artisan secret-stash:environments list
 php artisan secret-stash:env
 ```
 
+#### Create Environment
+
+Create a new environment for your application:
+
+```shell script
+php artisan secret-stash:environments create
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--name`: The name of the environment (e.g., `Staging`).
+- `--slug`: The environment slug (e.g., `staging`).
+- `--type`: The environment type (`local`, `development`, or `production`).
+
+#### Share Environment
+
+To share an environment with other team members, use the `share` command. This will identify which team members do not have access and create the necessary encryption envelopes for them:
+
+```shell script
+php artisan secret-stash:share
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`). Defaults to the environment that is set in your `APP_ENV` definition.
+
 ---
 
 ### Managing Encryption Keys
@@ -200,6 +237,97 @@ View which environments have keys configured on your local machine:
 ```shell script
 php artisan secret-stash:keys list
 ```
+
+#### Device Status
+
+View the status of your local private key and server registration:
+
+```shell script
+php artisan secret-stash:keys status
+```
+
+#### Initialize Device
+
+Generate and register a new RSA-4096 key pair for this device:
+
+```shell script
+php artisan secret-stash:keys init
+```
+
+**Options:**
+
+- `--force`: Force device key regeneration.
+- `--label`: Provide a custom label for this device (e.g., "Work MacBook").
+
+#### Sync Device
+
+Sync your local device metadata from the SecretStash server:
+
+```shell script
+php artisan secret-stash:keys sync
+```
+
+#### Key Recovery
+
+Generate a recovery key and export it to a file or QR code:
+
+```shell script
+php artisan secret-stash:keys recovery
+```
+
+**Options:**
+
+- `--copies`: Number of recovery share copies to print.
+- `--output-dir`: Directory to save recovery share files.
+
+---
+
+### Managing Envelopes
+
+SecretStash uses "envelopes" to securely share environment keys between team members. Each envelope is the environment's Data Encryption Key (DEK) encrypted with a user's unique public key.
+
+#### Rewrap Envelope
+
+Re-encrypts an existing envelope for a new device key. Useful when you've moved to a new machine and have your old private key.
+
+```shell script
+php artisan secret-stash:envelope rewrap
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`).
+- `--old-key-file`: Path to your old private key PEM file.
+- `--old-device-key-id`: The ID of your old device key.
+
+#### Repair Envelope
+
+Attempts to rewrap an envelope, and if it fails, offers to reset the envelopes for all users.
+
+```shell script
+php artisan secret-stash:envelope repair
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`).
+- `--old-key-file`: Path to your old private key PEM file.
+- `--old-device-key-id`: The ID of your old device key.
+
+#### Reset Envelope
+
+Generates a new environment key and creates new envelopes for all device keys associated with the application. **Warning: This will require all users to pull the latest variables.**
+
+```shell script
+php artisan secret-stash:envelope reset
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`).
 
 ## Testing
 
