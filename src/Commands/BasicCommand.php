@@ -55,8 +55,8 @@ abstract class BasicCommand extends Command
      */
     protected function setEnvironment(): void
     {
-        $this->applicationId = $this->hasOption('application') && $this->option('application') ? $this->option('application') : (config('secret-stash.application_id') ?? '');
-        $this->environmentSlug = $this->hasOption('environment') && $this->option('environment') ? $this->option('environment') : (config('app.env') ?? '');
+        $this->applicationId = $this->getApplicationOption() ? $this->option('application') : (config('secret-stash.application_id') ?? '');
+        $this->environmentSlug = $this->getEnvironmentOption() ? $this->option('environment') : (config('app.env') ?? '');
 
         if (empty($this->applicationId)) {
             throw new InvalidEnvironmentConfiguration('An application ID must be provided.');
@@ -70,7 +70,7 @@ abstract class BasicCommand extends Command
     protected function getEnvironmentId(SecretStashClient $client): string
     {
         if (app()->runningUnitTests()) {
-            return $this->option('environment') ?? 'env_123';
+            return $this->getEnvironmentOption() ? $this->option('environment') : 'env_123';
         }
 
         $response = $client->getEnvironments($this->applicationId);
@@ -92,6 +92,24 @@ abstract class BasicCommand extends Command
             label: 'Select an environment',
             options: $choices
         );
+    }
+
+    private function getApplicationOption(): ?string
+    {
+        try {
+            return $this->option('application');
+        } catch (\Symfony\Component\Console\Exception\InvalidArgumentException $e) {
+            return null;
+        }
+    }
+
+    private function getEnvironmentOption(): ?string
+    {
+        try {
+            return $this->option('environment');
+        } catch (\Symfony\Component\Console\Exception\InvalidArgumentException $e) {
+            return null;
+        }
     }
 
     protected function invalidAction(?string $action): int

@@ -15,7 +15,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
 {
     protected $signature = 'secret-stash:envelope
                             {action? : The action to perform (rewrap, repair, reset)}
-                            {--application= : Application ID}
+                            {--application= : The unique application ID that identifies your application within SecretStash}
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
                             {--old-key-file= : Path to the old private key PEM}
                             {--old-device-key-id= : Device key ID associated with the old private key}';
@@ -38,7 +38,7 @@ class SecretStashEnvelopeCommand extends BasicCommand
                 'reset' => $this->resetEnvelope($client),
                 default => $this->invalidAction($action),
             };
-        } catch (\Exception|\Throwable $e) {
+        } catch (\Throwable $e) {
             error('Error: '.$e->getMessage());
 
             return self::FAILURE;
@@ -200,10 +200,6 @@ class SecretStashEnvelopeCommand extends BasicCommand
 
     protected function printSuccess(): void
     {
-        if (! $this->output) {
-            return;
-        }
-
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Envelope rewrapped successfully!');
         $this->newLine();
@@ -211,10 +207,6 @@ class SecretStashEnvelopeCommand extends BasicCommand
 
     protected function printResetSuccess(): void
     {
-        if (! $this->output) {
-            return;
-        }
-
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Environment key reset successfully!');
         $this->line('<fg=yellow>Next:</> Re-upload your variables to encrypt them with the new key.');

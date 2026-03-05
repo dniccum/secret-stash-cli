@@ -27,7 +27,7 @@ trait UsesApplicationId
         $applicationId = $this->option('application');
 
         if (! $applicationId) {
-            $response = $client->getApplications($organizationId);
+            $response = $client->getApplications();
             $applications = $response['data'] ?? [];
 
             if (empty($applications)) {

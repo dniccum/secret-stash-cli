@@ -23,10 +23,19 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
     - [**Managing Environments**](#managing-environments)
         - [List Environments](#list-environments) (`secret-stash:environments list`)
         - [Create Environment](#create-environment) (`secret-stash:environments create`)
+        - [Share Environment](#share-environment) (`secret-stash:share`)
     - [**Managing Encryption Keys**](#managing-encryption-keys)
         - [Generate a Key](#generate-a-key) (`secret-stash:keys generate`)
         - [Set an Existing Key](#set-an-existing-key) (`secret-stash:keys set`)
         - [List Keys](#list-keys) (`secret-stash:keys list`)
+        - [Device Status](#device-status) (`secret-stash:keys status`)
+        - [Initialize Device](#initialize-device) (`secret-stash:keys init`)
+        - [Sync Device](#sync-device) (`secret-stash:keys sync`)
+        - [Key Recovery](#key-recovery) (`secret-stash:keys recovery`)
+    - [**Managing Envelopes**](#managing-envelopes)
+        - [Rewrap Envelope](#rewrap-envelope) (`secret-stash:envelope rewrap`)
+        - [Repair Envelope](#repair-envelope) (`secret-stash:envelope repair`)
+        - [Reset Envelope](#reset-envelope) (`secret-stash:envelope reset`)
 - [**Changelog**](#changelog)
 - [**Contributing**](#contributing)
 - [**Credits**](#credits)
@@ -42,7 +51,7 @@ A beautiful Laravel Composer package that provides Artisan commands for interact
 
 ## Requirements
 
-- PHP 8.4 or higher
+- PHP 8.2 or higher
 - Laravel 11 or higher
 - A SecretStash API Key
 
@@ -61,7 +70,7 @@ php artisan secret-stash:install
 ```
 
 > [!IMPORTANT]
-> This package creates a `~/.secret-stash/keys.json` file on your machine. Ensure this directory is secure as it contains the keys required to decrypt your environment variables.
+> This package creates a `~/.secret-stash` directory on your machine. Ensure this folder is secure as it contains the keys required to decrypt your environment variables.
 
 ### API Key
 
@@ -84,7 +93,7 @@ SECRET_STASH_APPLICATION_ID=your_application_id_here
 
 ## Configuration
 
-If you have not already, publish the configuration file using `php artisan vendor:publish php artisan vendor:publish --tag=secret-stash-config`. This will create a `config/secret-stash.php` file where you can customize the package's behavior.
+If you have not already, publish the configuration file using `php artisan vendor:publish --tag=secret-stash-config`. This will create a `config/secret-stash.php` file where you can customize the package's behavior.
 
 ### Ignored Variables
 
@@ -124,9 +133,9 @@ php artisan secret-stash:variables pull
 ```
 
 **Options:**
+- `--application`: The unique application ID that identifies your application within SecretStash
 - `--environment`: Specify the environment slug (e.g., `production`). Defaults to the environment that is set in your `APP_ENV` definition.
 - `--file`: The path to the file you want to update (defaults to `.env`).
-- `--key`: Provide a specific encryption key if it's not in your local `keys.json`. *Note: assuming you followed the installation step above, you should not have to use this.*
 
 #### Pushing Variables
 
@@ -140,6 +149,7 @@ php artisan secret-stash:variables push
 
 **Options:**
 
+- `--application`: The unique application ID that identifies your application within SecretStash
 - `--environment`: Specify the destination environment. If the environment doesn't exist, you will be prompted to create it.
 - `--file`: The source file to read (defaults to `.env`).
 
@@ -169,17 +179,37 @@ php artisan secret-stash:env
 
 #### Create Environment
 
-Create a new environment container:
+Create a new environment for your application:
 
 ```shell script
-php artisan secret-stash:environments create --name="Staging" --slug="staging" --type="development"
+php artisan secret-stash:environments create
 ```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--name`: The name of the environment (e.g., `Staging`).
+- `--slug`: The environment slug (e.g., `staging`).
+- `--type`: The environment type (`local`, `development`, or `production`).
+
+#### Share Environment
+
+To share an environment with other team members, use the `share` command. This will identify which team members do not have access and create the necessary encryption envelopes for them:
+
+```shell script
+php artisan secret-stash:share
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`). Defaults to the environment that is set in your `APP_ENV` definition.
 
 ---
 
 ### Managing Encryption Keys
 
-SecretStash CLI uses client-side encryption. This means your raw values never touch SecretStash's servers; only the encrypted payloads do. Keys are stored locally in `~/.secret-stash/keys.json`.
+SecretStash CLI uses client-side encryption. This means your raw values never touch SecretStash's servers; only the encrypted payloads do. Keys are stored locally in `~/.secret-stash`.
 
 > [!IMPORTANT]
 > This portion of the package is something that you will likely not need. Please be sure to perform the installation command `php artisan secret-stash:install`. This will generate the necessary encryption keys for you.
@@ -207,6 +237,97 @@ View which environments have keys configured on your local machine:
 ```shell script
 php artisan secret-stash:keys list
 ```
+
+#### Device Status
+
+View the status of your local private key and server registration:
+
+```shell script
+php artisan secret-stash:keys status
+```
+
+#### Initialize Device
+
+Generate and register a new RSA-4096 key pair for this device:
+
+```shell script
+php artisan secret-stash:keys init
+```
+
+**Options:**
+
+- `--force`: Force device key regeneration.
+- `--label`: Provide a custom label for this device (e.g., "Work MacBook").
+
+#### Sync Device
+
+Sync your local device metadata from the SecretStash server:
+
+```shell script
+php artisan secret-stash:keys sync
+```
+
+#### Key Recovery
+
+Generate a recovery key and export it to a file or QR code:
+
+```shell script
+php artisan secret-stash:keys recovery
+```
+
+**Options:**
+
+- `--copies`: Number of recovery share copies to print.
+- `--output-dir`: Directory to save recovery share files.
+
+---
+
+### Managing Envelopes
+
+SecretStash uses "envelopes" to securely share environment keys between team members. Each envelope is the environment's Data Encryption Key (DEK) encrypted with a user's unique public key.
+
+#### Rewrap Envelope
+
+Re-encrypts an existing envelope for a new device key. Useful when you've moved to a new machine and have your old private key.
+
+```shell script
+php artisan secret-stash:envelope rewrap
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`).
+- `--old-key-file`: Path to your old private key PEM file.
+- `--old-device-key-id`: The ID of your old device key.
+
+#### Repair Envelope
+
+Attempts to rewrap an envelope, and if it fails, offers to reset the envelopes for all users.
+
+```shell script
+php artisan secret-stash:envelope repair
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`).
+- `--old-key-file`: Path to your old private key PEM file.
+- `--old-device-key-id`: The ID of your old device key.
+
+#### Reset Envelope
+
+Generates a new environment key and creates new envelopes for all device keys associated with the application. **Warning: This will require all users to pull the latest variables.**
+
+```shell script
+php artisan secret-stash:envelope reset
+```
+
+**Options:**
+
+- `--application`: The unique application ID that identifies your application within SecretStash
+- `--environment`: Specify the environment slug (e.g., `production`).
 
 ## Testing
 

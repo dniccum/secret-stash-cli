@@ -17,7 +17,7 @@ class SecretStashShareCommand extends BasicCommand
     use UsesApplicationId;
 
     protected $signature = 'secret-stash:share
-                            {--application= : Application ID}
+                            {--application= : The unique application ID that identifies your application within SecretStash}
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}';
 
     protected $description = 'Share an environment with team members';
