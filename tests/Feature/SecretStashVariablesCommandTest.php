@@ -4,6 +4,16 @@ use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Support\Facades\File;
 
+beforeEach(function () {
+    $this->meta = [
+        'device_key_id' => 123,
+        'label' => 'Test Device',
+        'public_key' => $this->pair->public_key,
+        'fingerprint' => CryptoHelper::fingerprint($this->pair->public_key),
+    ];
+    file_put_contents($this->dir.'/device.json', json_encode($this->meta));
+});
+
 it('can run the variables:list command and display results', function () {
     $dek = CryptoHelper::generateKey();
 
