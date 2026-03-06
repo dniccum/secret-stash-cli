@@ -337,23 +337,4 @@ class SecretStashVariablesCommand extends BasicCommand
             throw $e;
         }
     }
-
-    /**
-     * @return array<int, string>
-     */
-    protected function ignoredVariables(): array
-    {
-        if (! function_exists('app')) {
-            return [];
-        }
-
-        $app = app();
-        if (! $app->bound('config')) {
-            return [];
-        }
-
-        $ignored = $app->make('config')->get('secret-stash.ignored_variables', []);
-
-        return is_array($ignored) ? array_values($ignored) : [];
-    }
 }
