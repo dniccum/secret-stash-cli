@@ -26,6 +26,10 @@ class SecretStashVariablesCommand extends BasicCommand
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
                             {--file= : .env file path for pull/push actions}';
 
+    protected $aliases = [
+        'secret-stash:var',
+    ];
+
     protected $description = 'Manage SecretStash environment variables';
 
     public function __construct()
