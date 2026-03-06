@@ -7,8 +7,8 @@ use Dniccum\SecretStash\Exceptions\Environments\NoEnvironmentsFound;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Console\Command;
-
 use Illuminate\Contracts\Container\BindingResolutionException;
+
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
@@ -144,6 +144,7 @@ abstract class BasicCommand extends Command
 
     /**
      * @return array<int, string>
+     *
      * @throws BindingResolutionException
      */
     protected function ignoredVariables(): array
