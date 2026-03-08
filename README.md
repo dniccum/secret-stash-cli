@@ -284,11 +284,15 @@ php artisan secret-stash:keys recovery
 
 ### Managing Envelopes
 
-SecretStash uses "envelopes" to securely share environment keys between team members. Each envelope is the environment's Data Encryption Key (DEK) encrypted with a user's unique public key.
+Managing envelopes is critical to SecretStash's client-side encryption model. Your raw environment variables are never stored on our servers; instead, they are encrypted using an environment-specific Data Encryption Key (DEK).
+
+To share this DEK securely, SecretStash uses "envelopes"—the DEK encrypted with a user's unique RSA public key. Only the intended recipient, using their local private key, can "open" the envelope to retrieve the DEK and decrypt the variables.
 
 #### Rewrap Envelope
 
-Re-encrypts an existing envelope for a new device key. Useful when you've moved to a new machine and have your old private key.
+**When to use:** Use this when moving to a new machine or generating a new device key pair while still having access to your old private key.
+
+**Why it's important:** It migrates access to your new device. It uses your old private key to decrypt the DEK and immediately re-encrypts it with your new public key, creating a new envelope for your current session.
 
 ```shell script
 php artisan secret-stash:envelope rewrap
@@ -303,7 +307,9 @@ php artisan secret-stash:envelope rewrap
 
 #### Repair Envelope
 
-Attempts to rewrap an envelope, and if it fails, offers to reset the envelopes for all users.
+**When to use:** Use this if you encounter decryption errors or "envelope not found" messages after a device change or key sync issue.
+
+**Why it's important:** It simplifies recovery by first attempting a rewrap with your old credentials. If that fails, it provides a fallback option to reset the environment envelopes entirely.
 
 ```shell script
 php artisan secret-stash:envelope repair
@@ -318,7 +324,12 @@ php artisan secret-stash:envelope repair
 
 #### Reset Envelope
 
-Generates a new environment key and creates new envelopes for all device keys associated with the application. **Warning: This will require all users to pull the latest variables.**
+**When to use:** Use this "break glass" operation if keys are lost, a device is compromised, or during a scheduled security rotation.
+
+**Why it's important:** It generates a brand-new DEK and creates new envelopes for all registered devices.
+
+> [!WARNING]
+> This is a destructive action. Once reset, all team members must pull the latest variables and re-push them to ensure they are encrypted with the new key. Any variables not re-pushed will be inaccessible.
 
 ```shell script
 php artisan secret-stash:envelope reset
