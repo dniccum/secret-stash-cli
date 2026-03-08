@@ -10,6 +10,7 @@ This is a package that allows users to interact with the SecretStash cloud appli
 - php - 8.4.14
 - laravel/pint (PINT) - v1
 - pestphp/pest (PEST) - v4
+- larastan/larastan (LARASTAN) - v3
 - phpunit/phpunit (PHPUNIT) - v12
 
 ## Conventions
@@ -41,6 +42,14 @@ This is a package that allows users to interact with the SecretStash cloud appli
 
 - You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
 - Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
+
+
+=== larastan/core rules ===
+
+## Larastan
+
+- You must run `composer analyse` or `vendor/bin/phpstan analyse` to ensure all code is correctly typed and formatted before finalizing changes.
+- Ensure there are no errors in the analysis before submitting your PR or finalizing your work.
 
 
 === pest/core rules ===
