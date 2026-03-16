@@ -34,7 +34,10 @@ return [
     | The SECRET_STASH_ prefix is always ignored by default.
     |
     */
-    'ignored_variables' => [],
+    'ignored_variables' => [
+        'APP_KEY',
+        'APP_ENV',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -45,5 +48,5 @@ return [
     | protocol (http/https) and domain, but not the /api path.
     |
     */
-    'api_url' => env('SECRET_STASH_API_URL', 'http://localhost:8000'),
+    'api_url' => env('SECRET_STASH_API_URL', 'https://secretstash.cloud'),
 ];
