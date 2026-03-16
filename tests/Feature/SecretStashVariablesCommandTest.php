@@ -67,7 +67,7 @@ it('lists variables when at least one exists', function () {
 it('updates .env when variables are pulled with various key formats', function () {
     $dek = CryptoHelper::generateKey();
 
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
     File::put($tempEnv, "existing_var=old_value\nMIXED_Case=stay_same");
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
@@ -104,7 +104,7 @@ it('updates .env when variables are pulled with various key formats', function (
 it('pulls and writes decrypted values into .env', function () {
     $dek = CryptoHelper::generateKey();
 
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
     File::put($tempEnv, '');
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {

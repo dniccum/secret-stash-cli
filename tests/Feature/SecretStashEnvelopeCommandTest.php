@@ -9,7 +9,7 @@ it('rewraps the environment envelope with a new user key', function () {
     $oldEnvelope = CryptoHelper::createEnvelope($dek, $oldKeyPair->public_key);
 
     // Write old private key PEM to temp file
-    $tempFile = tempnam(sys_get_temp_dir(), 'old_key_');
+    $tempFile = str_replace('\\', '/', tempnam(sys_get_temp_dir(), 'old_key_'));
     file_put_contents($tempFile, $oldKeyPair->private_key);
 
     $this->mock(SecretStashClient::class, function ($mock) use ($oldEnvelope, $dek) {
@@ -77,7 +77,7 @@ it('repairs the environment envelope by falling back to reset', function () {
     $badEnvelope = CryptoHelper::createEnvelope($dek, $mismatchPair->public_key);
 
     // Write old private key PEM to temp file
-    $tempFile = tempnam(sys_get_temp_dir(), 'old_key_');
+    $tempFile = str_replace('\\', '/', tempnam(sys_get_temp_dir(), 'old_key_'));
     file_put_contents($tempFile, $oldKeyPair->private_key);
 
     $this->mock(SecretStashClient::class, function ($mock) use ($badEnvelope) {
