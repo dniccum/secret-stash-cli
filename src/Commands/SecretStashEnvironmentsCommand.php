@@ -17,7 +17,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
                             {--application= : The unique application ID that identifies your application within SecretStash}
                             {--name= : Name of the environment to create}
                             {--slug= : The environment slug (used to reference the environment in your application configuration)}
-                            {--type= : Environment type for create action (local, development, production)}';
+                            {--type= : Environment type for create action (local, development, production, testing)}';
 
     protected $aliases = [
         'secret-stash:env',
@@ -103,6 +103,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
                 'local' => 'Local',
                 'development' => 'Development',
                 'production' => 'Production',
+                'testing' => 'Testing',
             ]
         );
 

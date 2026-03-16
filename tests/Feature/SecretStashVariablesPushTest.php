@@ -16,6 +16,29 @@ beforeEach(function () {
     $this->meta = $meta;
 });
 
+it('blocks push to a testing environment with an error message', function () {
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
+    File::put($tempEnv, "APP_NAME=SecretStashApp\nDB_PASSWORD=password123");
+
+    $this->mock(SecretStashClient::class, function ($mock) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [
+                ['slug' => 'ci', 'id' => 'env_456', 'type' => 'testing'],
+            ]]);
+
+        // Should never attempt to create variables
+        $mock->shouldNotReceive('createVariable');
+        $mock->shouldNotReceive('getEnvironmentEnvelope');
+    });
+
+    $this->artisan("secret-stash:variables push --environment=ci --file={$tempEnv}")
+        ->expectsOutputToContain('This is a testing environment and may only be manipulated within the SecretStash application.')
+        ->assertSuccessful();
+
+    unlink($tempEnv);
+})->group('variables');
+
 it('skips variables with SECRET_STASH_ prefix when pushing', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
