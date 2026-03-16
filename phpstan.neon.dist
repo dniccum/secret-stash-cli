@@ -13,6 +13,3 @@ parameters:
         -
             message: '#Called ''env'' outside of the config directory#'
             path: config/*.php
-        -
-            message: '#Command ".*" does not have option ".*".#'
-            path: src/Commands/BasicCommand.php

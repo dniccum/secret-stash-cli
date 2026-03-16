@@ -19,7 +19,7 @@ beforeEach(function () {
 it('skips variables with SECRET_STASH_ prefix when pushing', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
     File::put($tempEnv, "APP_NAME=SecretStashApp\nSECRET_STASH_API_TOKEN=secret_token\nDB_PASSWORD=password123\nSECRET_STASH_URL=https://secret-stash.io");
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
@@ -55,7 +55,7 @@ it('skips variables with SECRET_STASH_ prefix when pushing', function () {
 it('skips commented variables when pushing', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
     $envContent = <<<'EOD'
 APP_NAME=SecretStashApp
 # COMMENTED_VAR=hidden
@@ -98,7 +98,7 @@ EOD;
 it('skips variables with inline comments if they are at the start of the line', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
     $envContent = <<<'EOD'
   # LEADING_SPACE_COMMENT=value
 NOT_COMMENTED=true # INLINE_COMMENT=not_a_var
@@ -139,7 +139,7 @@ EOD;
 it('skips variables defined in ignored_variables config when pushing', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
     File::put($tempEnv, "APP_NAME=SecretStashApp\nIGNORE_ME=true\nDB_PASSWORD=password123");
 
     // Mock config
@@ -178,7 +178,7 @@ it('skips variables defined in ignored_variables config when pushing', function 
 it('skips variables defined in ignored_variables config when pulling', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
-    $tempEnv = tempnam(sys_get_temp_dir(), '.env');
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
     File::put($tempEnv, 'EXISTING_VAR=old_value');
 
     // Mock config
