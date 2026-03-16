@@ -48,7 +48,7 @@ it('throws an error if it cannot find the application based on option', function
     $this->mock(SecretStashClient::class, function ($mock) {
         $mock->shouldReceive('getEnvironments')
             ->once()
-            ->andThrow(new \Exception);
+            ->andThrow(new Exception);
     });
 
     // Act & Assert
