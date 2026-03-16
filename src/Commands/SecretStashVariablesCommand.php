@@ -157,6 +157,18 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function pushVariables(SecretStashClient $client): void
     {
+        $environments = $client->getEnvironments($this->applicationId);
+        $envData = $environments['data'] ?? [];
+
+        // Check if the target environment is a testing environment
+        foreach ($envData as $env) {
+            if ($env['slug'] === $this->environmentSlug && ($env['type'] ?? '') === 'testing') {
+                error('This is a testing environment and may only be manipulated within the SecretStash application.');
+
+                return;
+            }
+        }
+
         $environmentId = $this->environmentSlug;
         $key = $this->getEnvironmentKey($environmentId, $client);
 
@@ -194,11 +206,10 @@ class SecretStashVariablesCommand extends BasicCommand
         $created = 0;
         $failed = 0;
 
-        $environments = $client->getEnvironments($this->applicationId);
-        if (count($environments['data']) === 0) {
+        if (count($envData) === 0) {
             $this->createEnvironment();
         } else {
-            $slugList = array_map(fn ($env) => $env['slug'], $environments['data']);
+            $slugList = array_map(fn ($env) => $env['slug'], $envData);
             if (! in_array($this->environmentSlug, $slugList, true)) {
                 $this->createEnvironment();
             }
