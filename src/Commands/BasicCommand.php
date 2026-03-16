@@ -8,6 +8,7 @@ use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Symfony\Component\Console\Exception\InvalidArgumentException;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\select;
@@ -99,7 +100,7 @@ abstract class BasicCommand extends Command
     {
         try {
             return $this->option('application');
-        } catch (\Symfony\Component\Console\Exception\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return null;
         }
     }
@@ -108,7 +109,7 @@ abstract class BasicCommand extends Command
     {
         try {
             return $this->option('environment');
-        } catch (\Symfony\Component\Console\Exception\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return null;
         }
     }

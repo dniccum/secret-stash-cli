@@ -1,5 +1,6 @@
 <?php
 
+use Dniccum\SecretStash\Commands\SecretStashVariablesCommand;
 use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 use Illuminate\Support\Facades\File;
@@ -141,7 +142,7 @@ it('correctly reads APP_ENV from .env file', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_ENV=staging\n");
 
-    $command = Mockery::mock(\Dniccum\SecretStash\Commands\SecretStashVariablesCommand::class)->makePartial();
+    $command = Mockery::mock(SecretStashVariablesCommand::class)->makePartial();
     $command->shouldAllowMockingProtectedMethods();
     $command->shouldReceive('option')->with('file')->andReturn($tempEnv);
 
@@ -154,7 +155,7 @@ it('correctly reads APP_ENV from .env file with quotes', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_ENV=\"production\"\n");
 
-    $command = Mockery::mock(\Dniccum\SecretStash\Commands\SecretStashVariablesCommand::class)->makePartial();
+    $command = Mockery::mock(SecretStashVariablesCommand::class)->makePartial();
     $command->shouldAllowMockingProtectedMethods();
     $command->shouldReceive('option')->with('file')->andReturn($tempEnv);
 

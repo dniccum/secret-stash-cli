@@ -2,6 +2,8 @@
 
 namespace Dniccum\SecretStash\Contracts;
 
+use Carbon\Carbon;
+
 class ApplicationEnvironmentVariable
 {
     public function __construct(
@@ -10,6 +12,6 @@ class ApplicationEnvironmentVariable
         public ?array $payload = null,
         public ?string $created_at = null
     ) {
-        $this->created_at = \Carbon\Carbon::parse($created_at)->toDateTimeString();
+        $this->created_at = Carbon::parse($created_at)->toDateTimeString();
     }
 }
