@@ -37,7 +37,7 @@ php artisan secret-stash:install
 Add the following environment variables to your application's `.env` file:
 
 ```dotenv
-SECRET_STASH_API_KEY=your_token_here
+SECRET_STASH_API_TOKEN=your_token_here
 SECRET_STASH_APPLICATION_ID=your_application_id_here
 ```
 
