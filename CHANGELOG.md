@@ -2,6 +2,16 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.5.0 - 2026-03-17
+
+### What's Changed
+
+* Bump ramsey/composer-install from 3 to 4 by @dependabot[bot] in https://github.com/dniccum/secret-stash-cli/pull/11
+* feat: add Testing environment type with CLI push restrictions by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/12
+* docs: simplify README and add open graph image by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/13
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.4.0...v0.5.0
+
 ## v0.4.0 - 2026-03-16
 
 ### What's Changed
