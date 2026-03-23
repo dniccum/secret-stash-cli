@@ -2,6 +2,8 @@
 
 use Dniccum\SecretStash\Exceptions\ApiToken\InvalidApiToken;
 use Dniccum\SecretStash\SecretStashClient;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 it('returns the API message from a JSON error response', function () {
@@ -73,7 +75,7 @@ it('throws InvalidApiToken for 403 responses', function () {
 
 it('shows a friendly message for connection failures', function () {
     Http::fake(function () {
-        throw new \Illuminate\Http\Client\ConnectionException('Could not resolve host');
+        throw new ConnectionException('Could not resolve host');
     });
 
     $client = new SecretStashClient('https://secret-stash.app', 'test-token');
@@ -95,7 +97,7 @@ it('preserves the original exception in the chain', function () {
     try {
         $client->get('applications');
     } catch (RuntimeException $e) {
-        expect($e->getPrevious())->toBeInstanceOf(\Illuminate\Http\Client\RequestException::class);
+        expect($e->getPrevious())->toBeInstanceOf(RequestException::class);
 
         return;
     }
