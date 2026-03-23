@@ -2,6 +2,14 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.6.0 - 2026-03-23
+
+### What's Changed
+
+* fix: clean up CLI error messages to hide raw API details (SEC-6) by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/19
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.5.0...v0.6.0
+
 ## v0.5.0 - 2026-03-17
 
 ### What's Changed
