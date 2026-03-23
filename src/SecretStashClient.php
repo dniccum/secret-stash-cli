@@ -7,7 +7,9 @@ use Dniccum\SecretStash\Exceptions\ApiToken\MissingApiToken;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\Support\VariableUtility;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 
 class SecretStashClient
 {
@@ -104,7 +106,33 @@ class SecretStashClient
                 previous: $e,
             );
         }
-        throw new \RuntimeException('API request failed: '.$e->getMessage(), $e->getCode(), $e);
+
+        throw new \RuntimeException($this->formatErrorMessage($e), $e->getCode(), $e);
+    }
+
+    /**
+     * Extract a clean, user-friendly error message from an exception.
+     */
+    protected function formatErrorMessage(\Throwable $e): string
+    {
+        if ($e instanceof ConnectException) {
+            return 'Unable to connect to the SecretStash API. Please check your network connection and API URL configuration.';
+        }
+
+        if ($e instanceof RequestException && $e->hasResponse()) {
+            $response = $e->getResponse();
+            $statusCode = $response->getStatusCode();
+            $body = (string) $response->getBody();
+            $decoded = json_decode($body, true);
+
+            if (is_array($decoded) && isset($decoded['message'])) {
+                return $decoded['message'];
+            }
+
+            return "API request failed with status code {$statusCode}.";
+        }
+
+        return 'An unexpected API error occurred. Please try again.';
     }
 
     /**
