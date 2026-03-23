@@ -59,7 +59,7 @@ it('throws InvalidApiToken for 401 responses', function () {
         ->toThrow(InvalidApiToken::class);
 });
 
-it('throws InvalidApiToken for 403 responses', function () {
+it('throws RuntimeException with API message for 403 responses', function () {
     Http::fake([
         '*/api/applications' => Http::response(
             ['message' => 'Forbidden.'],
@@ -70,7 +70,7 @@ it('throws InvalidApiToken for 403 responses', function () {
     $client = new SecretStashClient('https://secret-stash.app', 'test-token');
 
     expect(fn () => $client->get('applications'))
-        ->toThrow(InvalidApiToken::class);
+        ->toThrow(RuntimeException::class, 'Forbidden.');
 });
 
 it('shows a friendly message for connection failures', function () {

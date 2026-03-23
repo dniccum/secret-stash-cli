@@ -92,7 +92,7 @@ class SecretStashClient
         if ($e instanceof RequestException) {
             $statusCode = $e->response->status();
 
-            if ($statusCode === 401 || $statusCode === 403) {
+            if ($statusCode === 401) {
                 throw new InvalidApiToken(
                     code: $statusCode,
                     previous: $e,
