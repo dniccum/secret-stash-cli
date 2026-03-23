@@ -2,6 +2,14 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.6.1 - 2026-03-23
+
+### What's Changed
+
+* fix: replace array access with property access on RSAKeyPair objects by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/21
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.6.0...v0.6.1
+
 ## v0.6.0 - 2026-03-23
 
 ### What's Changed
