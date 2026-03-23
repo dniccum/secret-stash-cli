@@ -2,6 +2,14 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.6.2 - 2026-03-23
+
+### What's Changed
+
+* fix: differentiate 401 (invalid token) from 403 (authorization failure) in error handling by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/23
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.6.1...v0.6.2
+
 ## v0.6.1 - 2026-03-23
 
 ### What's Changed
