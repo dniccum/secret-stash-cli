@@ -144,7 +144,7 @@ class SecretStashKeysCommand extends BasicCommand
             'platform' => PHP_OS_FAMILY,
         ];
 
-        $response = $client->storeDeviceKey($label, $keyPair['public_key'], 'device', $metadata);
+        $response = $client->storeDeviceKey($label, $keyPair->public_key, 'device', $metadata);
         $deviceKey = $response['data'] ?? null;
 
         if (! $deviceKey || ! isset($deviceKey['id'])) {
@@ -154,8 +154,8 @@ class SecretStashKeysCommand extends BasicCommand
         $this->saveDeviceMetadata([
             'device_key_id' => $deviceKey['id'],
             'label' => $deviceKey['label'] ?? $label,
-            'public_key' => $deviceKey['public_key'] ?? $keyPair['public_key'],
-            'fingerprint' => $deviceKey['fingerprint'] ?? CryptoHelper::fingerprint($keyPair['public_key']),
+            'public_key' => $deviceKey['public_key'] ?? $keyPair->public_key,
+            'fingerprint' => $deviceKey['fingerprint'] ?? CryptoHelper::fingerprint($keyPair->public_key),
         ]);
 
         $this->newLine();
@@ -235,10 +235,10 @@ class SecretStashKeysCommand extends BasicCommand
             message: 'Generating RSA-4096 recovery key...'
         );
 
-        $fingerprint = CryptoHelper::fingerprint($keyPair['public_key']);
-        $share = CryptoHelper::encodeRecoveryShare($keyPair['private_key'], $fingerprint);
+        $fingerprint = CryptoHelper::fingerprint($keyPair->public_key);
+        $share = CryptoHelper::encodeRecoveryShare($keyPair->private_key, $fingerprint);
 
-        $response = $client->storeDeviceKey('Recovery Key', $keyPair['public_key'], 'recovery');
+        $response = $client->storeDeviceKey('Recovery Key', $keyPair->public_key, 'recovery');
         $deviceKey = $response['data'] ?? null;
 
         if (! $deviceKey || ! isset($deviceKey['id'])) {
