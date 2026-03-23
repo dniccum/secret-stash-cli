@@ -90,8 +90,12 @@ class SecretStashVariablesCommand extends BasicCommand
         $rows = array_map(function (ApplicationEnvironmentVariable $var) use ($key) {
             $decryptedValue = '[Error decrypting]';
             try {
-                $decryptedValue = CryptoHelper::aesGcmDecrypt($var->payload, $key);
-            } catch (\Exception $e) {
+                if ($var->payload === null) {
+                    $decryptedValue = '[No value]';
+                } else {
+                    $decryptedValue = CryptoHelper::aesGcmDecrypt($var->payload, $key);
+                }
+            } catch (\Throwable $e) {
                 // Keep the error message
             }
 
@@ -136,9 +140,14 @@ class SecretStashVariablesCommand extends BasicCommand
                 }
 
                 $payload = $var->payload;
+                if ($payload === null) {
+                    $decryptedVariables[$name] = '';
+
+                    continue;
+                }
                 $decryptedValue = CryptoHelper::aesGcmDecrypt($payload, $key);
                 $decryptedVariables[$name] = $decryptedValue;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 $name = $var->name;
                 error("Failed to decrypt variable: {$name}");
             }
