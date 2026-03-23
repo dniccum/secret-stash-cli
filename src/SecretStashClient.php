@@ -64,7 +64,7 @@ class SecretStashClient
         try {
             $response = $this->buildClient()->get($endpoint, $query);
 
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Throwable $e) {
             $this->handleException($e);
         }
@@ -78,7 +78,7 @@ class SecretStashClient
         try {
             $response = $this->buildClient()->post($endpoint, $data);
 
-            return $response->json();
+            return $response->json() ?? [];
         } catch (\Throwable $e) {
             $this->handleException($e);
         }
