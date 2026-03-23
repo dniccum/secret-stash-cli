@@ -2,6 +2,14 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.6.3 - 2026-03-23
+
+### What's Changed
+
+* Handle null payloads gracefully and catch Throwable (SEC2-4) by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/25
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.6.2...v0.6.3
+
 ## v0.6.2 - 2026-03-23
 
 ### What's Changed
