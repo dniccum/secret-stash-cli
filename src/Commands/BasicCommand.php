@@ -123,9 +123,9 @@ abstract class BasicCommand extends Command
     }
 
     /**
-     * @return array<ApplicationEnvironmentVariable>|void
+     * @return array<ApplicationEnvironmentVariable>
      */
-    protected function getVariablesForEnvironment(SecretStashClient $client)
+    protected function getVariablesForEnvironment(SecretStashClient $client): array
     {
         $response = $client->getVariables($this->applicationId, $this->environmentSlug);
         $variables = $response['data'] ?? [];
@@ -133,7 +133,7 @@ abstract class BasicCommand extends Command
         if (empty($variables)) {
             error('No variables found.');
 
-            return;
+            return [];
         }
 
         return array_map(fn ($var) => new ApplicationEnvironmentVariable(
