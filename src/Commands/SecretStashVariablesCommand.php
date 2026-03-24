@@ -300,11 +300,18 @@ class SecretStashVariablesCommand extends BasicCommand
 
             return false;
         }
-        $this->call('secret-stash:environments', [
+        $exitCode = $this->call('secret-stash:environments', [
             'action' => 'create',
             '--name' => str($this->environmentSlug)->title()->toString(),
             '--slug' => $this->environmentSlug,
         ]);
+
+        if ($exitCode !== self::SUCCESS) {
+            error('Failed to create the environment. Push cancelled.');
+
+            return false;
+        }
+
         info('Environment successfully created. Continuing with push...');
 
         return true;
