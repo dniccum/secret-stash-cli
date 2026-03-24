@@ -112,15 +112,15 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         $response = $client->createEnvironment($this->applicationId, $name, $slug, $type);
         $env = $response['data'] ?? null;
 
-        if ($env) {
-            $this->newLine();
-            $this->line('<fg=green;options=bold>✓</> Environment created successfully!');
-            $this->line('<fg=yellow>Name:</> '.$env['name']);
-            $this->line('<fg=yellow>Slug:</> '.$env['slug']);
-            $this->line('<fg=yellow>Type:</> '.$env['type']);
-            $this->newLine();
-        } else {
-            error('Failed to create environment.');
+        if (! $env) {
+            throw new \RuntimeException('Failed to create environment.');
         }
+
+        $this->newLine();
+        $this->line('<fg=green;options=bold>✓</> Environment created successfully!');
+        $this->line('<fg=yellow>Name:</> '.$env['name']);
+        $this->line('<fg=yellow>Slug:</> '.$env['slug']);
+        $this->line('<fg=yellow>Type:</> '.$env['type']);
+        $this->newLine();
     }
 }
