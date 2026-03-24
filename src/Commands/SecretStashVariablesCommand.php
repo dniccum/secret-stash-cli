@@ -182,16 +182,6 @@ class SecretStashVariablesCommand extends BasicCommand
             }
         }
 
-        // Ensure the target environment exists before attempting to get the key
-        if (! $this->environmentExists($envData)) {
-            if (! $this->createEnvironment()) {
-                return;
-            }
-        }
-
-        $environmentId = $this->environmentSlug;
-        $key = $this->getEnvironmentKey($environmentId, $client);
-
         $filePath = $this->option('file') ?? '.env';
 
         if (! file_exists($filePath)) {
@@ -222,6 +212,16 @@ class SecretStashVariablesCommand extends BasicCommand
 
             return;
         }
+
+        // Ensure the target environment exists before attempting to get the key
+        if (! $this->environmentExists($envData)) {
+            if (! $this->createEnvironment()) {
+                return;
+            }
+        }
+
+        $environmentId = $this->environmentSlug;
+        $key = $this->getEnvironmentKey($environmentId, $client);
 
         $created = 0;
         $failed = 0;

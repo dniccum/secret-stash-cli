@@ -24,7 +24,7 @@ it('blocks push to a testing environment with an error message', function () {
         $mock->shouldReceive('getEnvironments')
             ->once()
             ->andReturn(['data' => [
-                ['slug' => 'ci', 'id' => 'env_456', 'type' => 'testing'],
+                ['slug' => 'ci', 'id' => 'env_456', 'name' => 'CI', 'type' => 'testing'],
             ]]);
 
         // Should never attempt to create variables
@@ -53,7 +53,7 @@ it('skips variables with SECRET_STASH_ prefix when pushing', function () {
 
         $mock->shouldReceive('getEnvironments')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'standard']]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
         $mock->shouldReceive('createVariable')
@@ -96,7 +96,7 @@ EOD;
 
         $mock->shouldReceive('getEnvironments')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'standard']]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
         $mock->shouldReceive('createVariable')
@@ -137,7 +137,7 @@ EOD;
 
         $mock->shouldReceive('getEnvironments')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'standard']]]);
 
         // Should only be called for NOT_COMMENTED and WITH_HASH
         $mock->shouldReceive('createVariable')
@@ -176,7 +176,7 @@ it('skips variables defined in ignored_variables config when pushing', function 
 
         $mock->shouldReceive('getEnvironments')
             ->once()
-            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123']]]);
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'standard']]]);
 
         // Should only be called for APP_NAME and DB_PASSWORD
         $mock->shouldReceive('createVariable')
