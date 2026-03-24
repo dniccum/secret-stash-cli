@@ -184,7 +184,9 @@ class SecretStashVariablesCommand extends BasicCommand
 
         // Ensure the target environment exists before attempting to get the key
         if (! $this->environmentExists($envData)) {
-            $this->createEnvironment();
+            if (! $this->createEnvironment()) {
+                return;
+            }
         }
 
         $environmentId = $this->environmentSlug;
@@ -287,7 +289,7 @@ class SecretStashVariablesCommand extends BasicCommand
         return null;
     }
 
-    protected function createEnvironment(): void
+    protected function createEnvironment(): bool
     {
         $confirmCreate = confirm(
             label: 'This environment does not exist. Would you like to create this environment now?',
@@ -296,7 +298,7 @@ class SecretStashVariablesCommand extends BasicCommand
         if (! $confirmCreate) {
             info('Push cancelled.');
 
-            return;
+            return false;
         }
         $this->call('secret-stash:environments', [
             'action' => 'create',
@@ -304,6 +306,8 @@ class SecretStashVariablesCommand extends BasicCommand
             '--slug' => $this->environmentSlug,
         ]);
         info('Environment successfully created. Continuing with push...');
+
+        return true;
     }
 
     protected function getEnvironmentKey(string $environmentId, SecretStashClient $client): string
