@@ -19,6 +19,10 @@ it('can run the variables:list command and display results', function () {
     $dek = CryptoHelper::generateKey();
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'testing']]]);
+
         $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
             ->with('app_123', 'testing', $this->meta['device_key_id'])
@@ -44,6 +48,10 @@ it('lists variables when at least one exists', function () {
     $dek = CryptoHelper::generateKey();
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'testing']]]);
+
         $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
             ->with('app_123', 'testing', 123)
@@ -71,6 +79,10 @@ it('updates .env when variables are pulled with various key formats', function (
     File::put($tempEnv, "existing_var=old_value\nMIXED_Case=stay_same");
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'testing']]]);
+
         $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
             ->with('app_123', 'testing', 123)
@@ -108,6 +120,10 @@ it('pulls and writes decrypted values into .env', function () {
     File::put($tempEnv, '');
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'testing']]]);
+
         $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
             ->with('app_123', 'testing', 123)

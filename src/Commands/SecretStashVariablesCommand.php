@@ -76,6 +76,8 @@ class SecretStashVariablesCommand extends BasicCommand
      */
     protected function listVariables(SecretStashClient $client): void
     {
+        $this->fetchAndValidateEnvironments($client);
+
         $environmentId = $this->environmentSlug;
         $key = $this->getEnvironmentKey($environmentId, $client);
 
@@ -121,6 +123,8 @@ class SecretStashVariablesCommand extends BasicCommand
      */
     protected function pullVariables(SecretStashClient $client): void
     {
+        $this->fetchAndValidateEnvironments($client);
+
         $environmentId = $this->environmentSlug;
         $key = $this->getEnvironmentKey($environmentId, $client);
 
@@ -178,6 +182,11 @@ class SecretStashVariablesCommand extends BasicCommand
             }
         }
 
+        // Ensure the target environment exists before attempting to get the key
+        if (! $this->environmentExists($envData)) {
+            $this->createEnvironment();
+        }
+
         $environmentId = $this->environmentSlug;
         $key = $this->getEnvironmentKey($environmentId, $client);
 
@@ -214,15 +223,6 @@ class SecretStashVariablesCommand extends BasicCommand
 
         $created = 0;
         $failed = 0;
-
-        if (count($envData) === 0) {
-            $this->createEnvironment();
-        } else {
-            $slugList = array_map(fn ($env) => $env['slug'], $envData);
-            if (! in_array($this->environmentSlug, $slugList, true)) {
-                $this->createEnvironment();
-            }
-        }
 
         spin(
             callback: function () use ($client, $variables, &$created, &$failed, $key) {

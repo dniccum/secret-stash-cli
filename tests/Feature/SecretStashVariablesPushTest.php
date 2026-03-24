@@ -208,6 +208,10 @@ it('skips variables defined in ignored_variables config when pulling', function 
     config(['secret-stash.ignored_variables' => ['IGNORE_ME_TOO']]);
 
     $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'testing']]]);
+
         $mock->shouldReceive('getEnvironmentEnvelope')
             ->once()
             ->with('app_123', 'testing', 123)
