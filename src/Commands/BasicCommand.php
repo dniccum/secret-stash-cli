@@ -32,7 +32,7 @@ abstract class BasicCommand extends Command
         parent::__construct();
 
         $customDir = getenv('SECRET_STASH_KEY_DIR');
-        $this->path = $customDir ?: $this->defaultPrivateKeyDirectory();
+        $this->path = (! app()->runningUnitTests() && $customDir) ? $customDir : $this->defaultPrivateKeyDirectory();
         $this->privateKeyFile = $this->path.'/device_private_key.pem';
         $this->deviceMetaFile = $this->path.'/device.json';
 
