@@ -34,7 +34,7 @@ it('blocks push to a testing environment with an error message', function () {
 
     $this->artisan("secret-stash:variables push --environment=ci --file={$tempEnv}")
         ->expectsOutputToContain('This is a testing environment and may only be manipulated within the SecretStash application.')
-        ->assertSuccessful();
+        ->assertFailed();
 
     unlink($tempEnv);
 })->group('variables');

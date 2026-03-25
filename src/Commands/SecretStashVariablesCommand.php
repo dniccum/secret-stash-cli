@@ -46,14 +46,12 @@ class SecretStashVariablesCommand extends BasicCommand
         try {
             $this->setEnvironment();
 
-            match ($action) {
+            return match ($action) {
                 'list' => $this->listVariables($client),
                 'pull' => $this->pullVariables($client),
                 'push' => $this->pushVariables($client),
                 default => $this->invalidAction($action),
             };
-
-            return self::SUCCESS;
         } catch (\Throwable $e) {
             error($e->getMessage());
 
@@ -74,7 +72,7 @@ class SecretStashVariablesCommand extends BasicCommand
     /**
      * @throws \Exception
      */
-    protected function listVariables(SecretStashClient $client): void
+    protected function listVariables(SecretStashClient $client): int
     {
         $this->fetchAndValidateEnvironments($client);
 
@@ -116,12 +114,14 @@ class SecretStashVariablesCommand extends BasicCommand
 
         $this->newLine();
         info('Total: '.count($variables).' variable(s)');
+
+        return self::SUCCESS;
     }
 
     /**
      * @throws \Exception
      */
-    protected function pullVariables(SecretStashClient $client): void
+    protected function pullVariables(SecretStashClient $client): int
     {
         $this->fetchAndValidateEnvironments($client);
 
@@ -166,9 +166,11 @@ class SecretStashVariablesCommand extends BasicCommand
         $this->line('<fg=yellow>File:</> '.$filePath);
         $this->line('<fg=yellow>Variables:</> '.count($decryptedVariables));
         $this->newLine();
+
+        return self::SUCCESS;
     }
 
-    protected function pushVariables(SecretStashClient $client): void
+    protected function pushVariables(SecretStashClient $client): int
     {
         $environments = $client->getEnvironments($this->applicationId);
         $envData = $environments['data'] ?? [];
@@ -178,7 +180,7 @@ class SecretStashVariablesCommand extends BasicCommand
             if ($env['slug'] === $this->environmentSlug && ($env['type'] ?? '') === 'testing') {
                 error('This is a testing environment and may only be manipulated within the SecretStash application.');
 
-                return;
+                return self::FAILURE;
             }
         }
 
@@ -187,7 +189,7 @@ class SecretStashVariablesCommand extends BasicCommand
         if (! file_exists($filePath)) {
             error("File not found: {$filePath}");
 
-            return;
+            return self::FAILURE;
         }
 
         info('Reading .env file...');
@@ -199,7 +201,7 @@ class SecretStashVariablesCommand extends BasicCommand
         if (empty($variables)) {
             error('No variables found in file.');
 
-            return;
+            return self::FAILURE;
         }
 
         $confirmed = confirm(
@@ -210,13 +212,13 @@ class SecretStashVariablesCommand extends BasicCommand
         if (! $confirmed) {
             info('Push cancelled.');
 
-            return;
+            return self::SUCCESS;
         }
 
         // Ensure the target environment exists before attempting to get the key
         if (! $this->environmentExists($envData)) {
             if (! $this->createEnvironment()) {
-                return;
+                return self::FAILURE;
             }
         }
 
@@ -261,6 +263,8 @@ class SecretStashVariablesCommand extends BasicCommand
             $this->line('<fg=red>Failed:</> '.$failed.' (may already exist)');
         }
         $this->newLine();
+
+        return self::SUCCESS;
     }
 
     protected function getAppEnvFromEnvFile(): ?string
