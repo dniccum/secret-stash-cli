@@ -231,11 +231,8 @@ class SecretStashVariablesCommand extends BasicCommand
         spin(
             callback: function () use ($client, $variables, &$created, &$failed, $key) {
                 foreach ($variables as $name => $value) {
-                    $payload = null;
                     try {
                         $payload = CryptoHelper::aesGcmEncrypt($value, $key);
-
-                        throw_if($payload === null, \Exception::class, "Payload for '$name' cannot be null.");
                         $client->createVariable($this->applicationId, $this->environmentSlug, $name, $payload);
                         $created++;
                     } catch (\Exception $e) {
