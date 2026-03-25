@@ -259,7 +259,7 @@ class SecretStashVariablesCommand extends BasicCommand
         }
         $this->newLine();
 
-        return self::SUCCESS;
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 
     protected function getAppEnvFromEnvFile(): ?string
@@ -301,6 +301,7 @@ class SecretStashVariablesCommand extends BasicCommand
         }
         $exitCode = $this->call('secret-stash:environments', [
             'action' => 'create',
+            '--application' => $this->applicationId,
             '--name' => str($this->environmentSlug)->title()->toString(),
             '--slug' => $this->environmentSlug,
             '--type' => 'local',
