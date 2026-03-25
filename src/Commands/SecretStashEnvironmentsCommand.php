@@ -25,6 +25,21 @@ class SecretStashEnvironmentsCommand extends BasicCommand
 
     protected $description = 'Manage SecretStash environments';
 
+    /**
+     * Override setEnvironment to only require applicationId.
+     * The environments command does not need an environmentSlug.
+     */
+    protected function setEnvironment(): void
+    {
+        $this->applicationId = $this->option('application') ?? config('secret-stash.application_id') ?? '';
+
+        if (empty($this->applicationId)) {
+            throw new \Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration('An application ID must be provided.');
+        }
+
+        $this->environmentSlug = config('app.env') ?? '';
+    }
+
     public function handle(SecretStashClient $client): int
     {
         $action = $this->argument('action') ?? 'list';
