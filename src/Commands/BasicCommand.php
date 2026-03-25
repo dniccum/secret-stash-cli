@@ -178,10 +178,9 @@ abstract class BasicCommand extends Command
 
         if (! $this->environmentExists($envData)) {
             $slugList = array_map(fn ($env) => $env['name'].' ('.$env['slug'].')', $envData);
-            error('The "'.$this->environmentSlug.'" environment does not exist for this application.');
-            info('Available environments: '.implode(', ', $slugList));
+            $slugList = array_map(fn ($env) => $env['name'].' ('.$env['slug'].')', $envData);
 
-            throw new NoEnvironmentsFound('The "'.$this->environmentSlug.'" environment does not exist.');
+            throw new NoEnvironmentsFound('The "'.$this->environmentSlug.'" environment does not exist for this application. Available environments: '.implode(', ', $slugList));
         }
 
         return $envData;
