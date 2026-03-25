@@ -11,7 +11,6 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
 abstract class BasicCommand extends Command
@@ -67,33 +66,6 @@ abstract class BasicCommand extends Command
         while (empty($this->environmentSlug)) {
             $this->environmentSlug = text('The environment that you would like to interact with', required: true);
         }
-    }
-
-    protected function getEnvironmentId(SecretStashClient $client): string
-    {
-        if (app()->runningUnitTests()) {
-            return $this->getEnvironmentOption() ? $this->option('environment') : 'env_123';
-        }
-
-        $response = $client->getEnvironments($this->applicationId);
-        $environments = $response['data'] ?? [];
-
-        if (empty($environments)) {
-            throw new NoEnvironmentsFound('No environments found for application ID '.$this->applicationId.'.');
-        }
-
-        $choices = [];
-        foreach ($environments as $env) {
-            if ($env['slug'] === $this->environmentSlug) {
-                return $env['id'];
-            }
-            $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
-        }
-
-        return select(
-            label: 'Select an environment',
-            options: $choices
-        );
     }
 
     private function getApplicationOption(): ?string
@@ -176,7 +148,6 @@ abstract class BasicCommand extends Command
         }
 
         if (! $this->environmentExists($envData)) {
-            $slugList = array_map(fn ($env) => $env['name'].' ('.$env['slug'].')', $envData);
             $slugList = array_map(fn ($env) => $env['name'].' ('.$env['slug'].')', $envData);
 
             throw new NoEnvironmentsFound('The "'.$this->environmentSlug.'" environment does not exist for this application. Available environments: '.implode(', ', $slugList));
