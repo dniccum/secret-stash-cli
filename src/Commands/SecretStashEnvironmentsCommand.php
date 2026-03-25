@@ -43,7 +43,10 @@ class SecretStashEnvironmentsCommand extends BasicCommand
 
     public function handle(SecretStashClient $client): int
     {
-        $action = $this->argument('action') ?? 'list';
+        $action = $this->argument('action') ?? select(
+            'What would you like to do?',
+            ['list', 'create']
+        );
 
         try {
             $this->setEnvironment();
