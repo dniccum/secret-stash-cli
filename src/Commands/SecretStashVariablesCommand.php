@@ -303,6 +303,7 @@ class SecretStashVariablesCommand extends BasicCommand
             'action' => 'create',
             '--name' => str($this->environmentSlug)->title()->toString(),
             '--slug' => $this->environmentSlug,
+            '--type' => 'local',
         ]);
 
         if ($exitCode !== self::SUCCESS) {
