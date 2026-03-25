@@ -242,7 +242,7 @@ class SecretStashVariablesCommand extends BasicCommand
                         logger()->debug($e->getMessage(), [
                             'environment' => $this->environmentSlug,
                             'variable' => $name,
-                            'value' => $value,
+                            'value' => '[REDACTED]',
                         ]);
                         $failed++;
                     }
