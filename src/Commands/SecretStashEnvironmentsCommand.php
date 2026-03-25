@@ -32,13 +32,11 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         try {
             $this->setEnvironment();
 
-            match ($action) {
+            return match ($action) {
                 'list' => $this->listEnvironments($client),
                 'create' => $this->createEnvironment($client),
                 default => $this->invalidAction($action),
             };
-
-            return self::SUCCESS;
         } catch (\Throwable $e) {
             error($e->getMessage());
 
@@ -46,7 +44,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         }
     }
 
-    protected function listEnvironments(SecretStashClient $client): void
+    protected function listEnvironments(SecretStashClient $client): int
     {
         info('Fetching environments...');
 
@@ -56,7 +54,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         if (empty($environments)) {
             info('No environments found.');
 
-            return;
+            return self::SUCCESS;
         }
 
         $this->newLine();
@@ -80,9 +78,11 @@ class SecretStashEnvironmentsCommand extends BasicCommand
             ['ID', 'Name', 'Slug', 'Type', 'Variables', 'Created'],
             $rows
         );
+
+        return self::SUCCESS;
     }
 
-    protected function createEnvironment(SecretStashClient $client): void
+    protected function createEnvironment(SecretStashClient $client): int
     {
         $name = $this->option('name') ?? text(
             label: 'What is the environment name?',
@@ -122,5 +122,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         $this->line('<fg=yellow>Slug:</> '.$env['slug']);
         $this->line('<fg=yellow>Type:</> '.$env['type']);
         $this->newLine();
+
+        return self::SUCCESS;
     }
 }
