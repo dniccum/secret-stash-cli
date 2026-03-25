@@ -235,8 +235,7 @@ class SecretStashVariablesCommand extends BasicCommand
                     try {
                         if ($value !== '') {
                             $payload = CryptoHelper::aesGcmEncrypt($value, $key);
-                        }
-                        if (empty($value)) {
+                        } else {
                             $payload = CryptoHelper::aesGcmEncrypt('null', $key);
                         }
 
