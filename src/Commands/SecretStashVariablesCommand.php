@@ -233,11 +233,7 @@ class SecretStashVariablesCommand extends BasicCommand
                 foreach ($variables as $name => $value) {
                     $payload = null;
                     try {
-                        if ($value !== '') {
-                            $payload = CryptoHelper::aesGcmEncrypt($value, $key);
-                        } else {
-                            $payload = CryptoHelper::aesGcmEncrypt('null', $key);
-                        }
+                        $payload = CryptoHelper::aesGcmEncrypt($value, $key);
 
                         throw_if($payload === null, \Exception::class, "Payload for '$name' cannot be null.");
                         $client->createVariable($this->applicationId, $this->environmentSlug, $name, $payload);
