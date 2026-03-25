@@ -2,6 +2,7 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
 
 use function Laravel\Prompts\error;
@@ -25,6 +26,21 @@ class SecretStashEnvironmentsCommand extends BasicCommand
 
     protected $description = 'Manage SecretStash environments';
 
+    /**
+     * Override setEnvironment to only require applicationId.
+     * The environments command does not need an environmentSlug.
+     */
+    protected function setEnvironment(): void
+    {
+        $this->applicationId = $this->option('application') ?? config('secret-stash.application_id') ?? '';
+
+        if (empty($this->applicationId)) {
+            throw new InvalidEnvironmentConfiguration('An application ID must be provided.');
+        }
+
+        $this->environmentSlug = config('app.env') ?? '';
+    }
+
     public function handle(SecretStashClient $client): int
     {
         $action = $this->argument('action') ?? 'list';
@@ -32,13 +48,11 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         try {
             $this->setEnvironment();
 
-            match ($action) {
+            return match ($action) {
                 'list' => $this->listEnvironments($client),
                 'create' => $this->createEnvironment($client),
                 default => $this->invalidAction($action),
             };
-
-            return self::SUCCESS;
         } catch (\Throwable $e) {
             error($e->getMessage());
 
@@ -46,7 +60,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         }
     }
 
-    protected function listEnvironments(SecretStashClient $client): void
+    protected function listEnvironments(SecretStashClient $client): int
     {
         info('Fetching environments...');
 
@@ -56,7 +70,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         if (empty($environments)) {
             info('No environments found.');
 
-            return;
+            return self::SUCCESS;
         }
 
         $this->newLine();
@@ -80,9 +94,11 @@ class SecretStashEnvironmentsCommand extends BasicCommand
             ['ID', 'Name', 'Slug', 'Type', 'Variables', 'Created'],
             $rows
         );
+
+        return self::SUCCESS;
     }
 
-    protected function createEnvironment(SecretStashClient $client): void
+    protected function createEnvironment(SecretStashClient $client): int
     {
         $name = $this->option('name') ?? text(
             label: 'What is the environment name?',
@@ -112,15 +128,17 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         $response = $client->createEnvironment($this->applicationId, $name, $slug, $type);
         $env = $response['data'] ?? null;
 
-        if ($env) {
-            $this->newLine();
-            $this->line('<fg=green;options=bold>✓</> Environment created successfully!');
-            $this->line('<fg=yellow>Name:</> '.$env['name']);
-            $this->line('<fg=yellow>Slug:</> '.$env['slug']);
-            $this->line('<fg=yellow>Type:</> '.$env['type']);
-            $this->newLine();
-        } else {
-            error('Failed to create environment.');
+        if (! $env) {
+            throw new \RuntimeException('Failed to create environment.');
         }
+
+        $this->newLine();
+        $this->line('<fg=green;options=bold>✓</> Environment created successfully!');
+        $this->line('<fg=yellow>Name:</> '.$env['name']);
+        $this->line('<fg=yellow>Slug:</> '.$env['slug']);
+        $this->line('<fg=yellow>Type:</> '.$env['type']);
+        $this->newLine();
+
+        return self::SUCCESS;
     }
 }

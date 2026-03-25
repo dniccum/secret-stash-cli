@@ -11,7 +11,6 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
 abstract class BasicCommand extends Command
@@ -69,33 +68,6 @@ abstract class BasicCommand extends Command
         }
     }
 
-    protected function getEnvironmentId(SecretStashClient $client): string
-    {
-        if (app()->runningUnitTests()) {
-            return $this->getEnvironmentOption() ? $this->option('environment') : 'env_123';
-        }
-
-        $response = $client->getEnvironments($this->applicationId);
-        $environments = $response['data'] ?? [];
-
-        if (empty($environments)) {
-            throw new NoEnvironmentsFound('No environments found for application ID '.$this->applicationId.'.');
-        }
-
-        $choices = [];
-        foreach ($environments as $env) {
-            if ($env['slug'] === $this->environmentSlug) {
-                return $env['id'];
-            }
-            $choices[$env['id']] = $env['name'].' ('.$env['type'].')';
-        }
-
-        return select(
-            label: 'Select an environment',
-            options: $choices
-        );
-    }
-
     private function getApplicationOption(): ?string
     {
         try {
@@ -122,9 +94,9 @@ abstract class BasicCommand extends Command
     }
 
     /**
-     * @return array<ApplicationEnvironmentVariable>|void
+     * @return array<ApplicationEnvironmentVariable>
      */
-    protected function getVariablesForEnvironment(SecretStashClient $client)
+    protected function getVariablesForEnvironment(SecretStashClient $client): array
     {
         $response = $client->getVariables($this->applicationId, $this->environmentSlug);
         $variables = $response['data'] ?? [];
@@ -132,7 +104,7 @@ abstract class BasicCommand extends Command
         if (empty($variables)) {
             error('No variables found.');
 
-            return;
+            return [];
         }
 
         return array_map(fn ($var) => new ApplicationEnvironmentVariable(
@@ -141,6 +113,47 @@ abstract class BasicCommand extends Command
             payload: $var['payload'],
             created_at: $var['created_at'],
         ), $variables);
+    }
+
+    /**
+     * Check if the current environment slug exists in the given environment list.
+     *
+     * @param  array  $envData  The list of environments from the API
+     * @return bool True if the environment exists, false otherwise
+     */
+    protected function environmentExists(array $envData): bool
+    {
+        if (empty($envData)) {
+            return false;
+        }
+
+        $slugList = array_map(fn ($env) => $env['slug'], $envData);
+
+        return in_array($this->environmentSlug, $slugList, true);
+    }
+
+    /**
+     * Fetch environments for the current application and validate the target environment exists.
+     * Returns the environment data array.
+     *
+     * @throws NoEnvironmentsFound
+     */
+    protected function fetchAndValidateEnvironments(SecretStashClient $client): array
+    {
+        $response = $client->getEnvironments($this->applicationId);
+        $envData = $response['data'] ?? [];
+
+        if (empty($envData)) {
+            throw new NoEnvironmentsFound('No environments found for application ID '.$this->applicationId.'.');
+        }
+
+        if (! $this->environmentExists($envData)) {
+            $slugList = array_map(fn ($env) => $env['name'].' ('.$env['slug'].')', $envData);
+
+            throw new NoEnvironmentsFound('The "'.$this->environmentSlug.'" environment does not exist for this application. Available environments: '.implode(', ', $slugList));
+        }
+
+        return $envData;
     }
 
     /**

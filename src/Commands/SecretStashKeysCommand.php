@@ -41,15 +41,13 @@ class SecretStashKeysCommand extends BasicCommand
         );
 
         try {
-            match ($action) {
+            return match ($action) {
                 'status' => $this->showStatus($client),
                 'init' => $this->initializeKeys($client),
                 'sync' => $this->syncFromServer($client),
                 'recovery' => $this->generateRecoveryKey($client),
                 default => $this->invalidAction($action),
             };
-
-            return self::SUCCESS;
         } catch (\Exception $e) {
             error('Error: '.$e->getMessage());
 
