@@ -2,6 +2,15 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.7.0 - 2026-03-25
+
+### What's Changed
+
+* fix: validate environment existence before fetching envelope key by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/26
+* fix: remove redundant null check on aesGcmEncrypt return value by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/29
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.6.3...v0.7.0
+
 ## v0.6.3 - 2026-03-23
 
 ### What's Changed
