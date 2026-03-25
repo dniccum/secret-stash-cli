@@ -198,6 +198,71 @@ it('skips variables defined in ignored_variables config when pushing', function 
     unlink($tempEnv);
 })->group('variables');
 
+it('returns failure when user declines environment creation for missing environment', function () {
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
+    File::put($tempEnv, "APP_NAME=SecretStashApp\nDB_PASSWORD=password123");
+
+    $this->mock(SecretStashClient::class, function ($mock) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [
+                ['slug' => 'staging', 'id' => 'env_456', 'name' => 'Staging', 'type' => 'standard'],
+            ]]);
+
+        // Should never attempt to create variables or fetch envelope
+        $mock->shouldNotReceive('createVariable');
+        $mock->shouldNotReceive('getEnvironmentEnvelope');
+    });
+
+    $this->artisan("secret-stash:variables push --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Push 2 variable(s) to your SecretStash application?', true)
+        ->expectsQuestion('This environment does not exist. Would you like to create this environment now?', false)
+        ->expectsOutputToContain('Push cancelled.')
+        ->assertFailed();
+
+    unlink($tempEnv);
+})->group('variables');
+
+it('creates environment and completes push when user accepts creation for missing environment', function () {
+    $dek = CryptoHelper::generateKey();
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
+    File::put($tempEnv, "APP_NAME=SecretStashApp\nDB_PASSWORD=password123");
+
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [
+                ['slug' => 'staging', 'id' => 'env_456', 'name' => 'Staging', 'type' => 'standard'],
+            ]]);
+
+        // The sub-command will call createEnvironment on the client
+        $mock->shouldReceive('createEnvironment')
+            ->once()
+            ->with('app_123', 'Testing', 'testing', 'local')
+            ->andReturn(['data' => ['name' => 'Testing', 'slug' => 'testing', 'type' => 'local']]);
+
+        // After environment creation, the sub-command lists environments
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->once()
+            ->with('app_123', 'testing', 123)
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->pair->public_key)]]);
+
+        $mock->shouldReceive('createVariable')
+            ->twice()
+            ->with('app_123', 'testing', Mockery::type('string'), Mockery::any())
+            ->andReturn([]);
+    });
+
+    $this->artisan("secret-stash:variables push --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Push 2 variable(s) to your SecretStash application?', true)
+        ->expectsQuestion('This environment does not exist. Would you like to create this environment now?', true)
+        ->expectsOutputToContain('Push completed!')
+        ->expectsOutputToContain('Created or Updated: 2')
+        ->assertSuccessful();
+
+    unlink($tempEnv);
+})->group('variables');
+
 it('skips variables defined in ignored_variables config when pulling', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
