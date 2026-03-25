@@ -2,6 +2,7 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
 
 use function Laravel\Prompts\error;
@@ -34,7 +35,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
         $this->applicationId = $this->option('application') ?? config('secret-stash.application_id') ?? '';
 
         if (empty($this->applicationId)) {
-            throw new \Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration('An application ID must be provided.');
+            throw new InvalidEnvironmentConfiguration('An application ID must be provided.');
         }
 
         $this->environmentSlug = config('app.env') ?? '';
