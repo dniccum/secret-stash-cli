@@ -232,7 +232,7 @@ class SecretStashVariablesCommand extends BasicCommand
             callback: function () use ($client, $variables, &$created, &$failed, $key) {
                 foreach ($variables as $name => $value) {
                     try {
-                        $payload = CryptoHelper::aesGcmEncrypt($value, $key);
+                        $payload = CryptoHelper::aesGcmEncrypt((string) ($value ?? ''), $key);
                         $client->createVariable($this->applicationId, $this->environmentSlug, $name, $payload);
                         $created++;
                     } catch (\Exception $e) {

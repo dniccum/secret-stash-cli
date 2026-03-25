@@ -263,6 +263,41 @@ it('creates environment and completes push when user accepts creation for missin
     unlink($tempEnv);
 })->group('variables');
 
+it('pushes variables with empty values successfully', function () {
+    $dek = CryptoHelper::generateKey();
+    $tempEnv = str_replace('\\', '/', tempnam(sys_get_temp_dir(), '.env'));
+    File::put($tempEnv, "APP_NAME=SecretStashApp\nEMPTY_VAR=\nDB_PASSWORD=password123");
+
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->once()
+            ->with('app_123', 'testing', 123)
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->pair->public_key)]]);
+
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'standard']]]);
+
+        // Should be called for all three variables including the empty one
+        $mock->shouldReceive('createVariable')
+            ->times(3)
+            ->with('app_123', 'testing', Mockery::type('string'), Mockery::on(function ($payload) {
+                return is_array($payload)
+                    && isset($payload['ct'])
+                    && is_string($payload['ct']);
+            }))
+            ->andReturn([]);
+    });
+
+    $this->artisan("secret-stash:variables push --environment=testing --file={$tempEnv}")
+        ->expectsQuestion('Push 3 variable(s) to your SecretStash application?', true)
+        ->expectsOutputToContain('Push completed!')
+        ->expectsOutputToContain('Created or Updated: 3')
+        ->assertSuccessful();
+
+    unlink($tempEnv);
+})->group('variables');
+
 it('skips variables defined in ignored_variables config when pulling', function () {
     // Arrange
     $dek = CryptoHelper::generateKey();
