@@ -42,6 +42,10 @@ class SecretStashKeysCommand extends BasicCommand
             ['status', 'init', 'sync', 'recovery']
         );
 
+        if ($action !== 'init' && ($this->option('temporary') || (int) $this->option('ttl') !== 15)) {
+            warning('The --temporary and --ttl options only apply to the "init" action and will be ignored.');
+        }
+
         try {
             return match ($action) {
                 'status' => $this->showStatus($client),
