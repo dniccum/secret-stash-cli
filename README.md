@@ -30,7 +30,7 @@ php artisan secret-stash:install
 ```
 
 > [!IMPORTANT]
-> This package creates a `~/.secret-stash` directory on your machine. Ensure this folder is secure as it contains the keys required to decrypt your environment variables.
+> This package creates a `~/.secret-stash` directory on your machine (or the path specified by the `SECRET_STASH_KEY_DIR` environment variable). Ensure this folder is secure as it contains the keys required to decrypt your environment variables.
 
 ## Configuration
 
