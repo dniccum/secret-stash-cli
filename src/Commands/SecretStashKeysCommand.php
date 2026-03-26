@@ -368,28 +368,29 @@ class SecretStashKeysCommand extends BasicCommand
             if (! $deviceKey || ! isset($deviceKey['id'])) {
                 throw new \RuntimeException('Failed to register temporary device key.');
             }
+
+            $deviceMeta = [
+                'device_key_id' => $deviceKey['id'],
+                'label' => $deviceKey['label'] ?? $label,
+                'public_key' => $deviceKey['public_key'] ?? $keyPair->public_key,
+                'fingerprint' => $deviceKey['fingerprint'] ?? CryptoHelper::fingerprint($keyPair->public_key),
+                'is_temporary' => true,
+                'expires_at' => $deviceKey['expires_at'] ?? null,
+            ];
+
+            $content = json_encode($deviceMeta, JSON_PRETTY_PRINT);
+            if (file_put_contents($tempDeviceMetaFile, $content) === false) {
+                throw new \RuntimeException('Failed to save temporary device metadata file.');
+            }
+            chmod($tempDeviceMetaFile, 0600);
         } catch (\Throwable $e) {
             // Clean up temp directory with private key material on failure
+            @unlink($tempDeviceMetaFile);
             @unlink($tempPrivateKeyFile);
             @rmdir($tempDir);
 
             throw $e;
         }
-
-        $deviceMeta = [
-            'device_key_id' => $deviceKey['id'],
-            'label' => $deviceKey['label'] ?? $label,
-            'public_key' => $deviceKey['public_key'] ?? $keyPair->public_key,
-            'fingerprint' => $deviceKey['fingerprint'] ?? CryptoHelper::fingerprint($keyPair->public_key),
-            'is_temporary' => true,
-            'expires_at' => $deviceKey['expires_at'] ?? null,
-        ];
-
-        $content = json_encode($deviceMeta, JSON_PRETTY_PRINT);
-        if (file_put_contents($tempDeviceMetaFile, $content) === false) {
-            throw new \RuntimeException('Failed to save temporary device metadata file.');
-        }
-        chmod($tempDeviceMetaFile, 0600);
 
         $this->newLine();
         $this->line('<fg=green;options=bold>✓</> Temporary device key registered!');
