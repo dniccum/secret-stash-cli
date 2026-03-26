@@ -361,11 +361,19 @@ class SecretStashKeysCommand extends BasicCommand
             'ttl_minutes' => $ttl,
         ];
 
-        $response = $client->storeDeviceKey($label, $keyPair->public_key, 'device', $metadata, true, $ttl);
-        $deviceKey = $response['data'] ?? null;
+        try {
+            $response = $client->storeDeviceKey($label, $keyPair->public_key, 'device', $metadata, true, $ttl);
+            $deviceKey = $response['data'] ?? null;
 
-        if (! $deviceKey || ! isset($deviceKey['id'])) {
-            throw new \RuntimeException('Failed to register temporary device key.');
+            if (! $deviceKey || ! isset($deviceKey['id'])) {
+                throw new \RuntimeException('Failed to register temporary device key.');
+            }
+        } catch (\Throwable $e) {
+            // Clean up temp directory with private key material on failure
+            @unlink($tempPrivateKeyFile);
+            @rmdir($tempDir);
+
+            throw $e;
         }
 
         $deviceMeta = [
@@ -389,6 +397,7 @@ class SecretStashKeysCommand extends BasicCommand
         $this->line('<fg=yellow>Expires at:</> '.($deviceKey['expires_at'] ?? 'in '.$ttl.' minutes'));
         $this->newLine();
         info('Set SECRET_STASH_KEY_DIR='.$tempDir.' to use this temporary key.');
+        $this->line('<fg=gray>Remember to delete '.$tempDir.' after the key expires.</>');
 
         return self::SUCCESS;
     }
