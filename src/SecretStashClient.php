@@ -215,14 +215,21 @@ class SecretStashClient
     /**
      * Store/update current user's device key.
      */
-    public function storeDeviceKey(string $label, string $publicKey, string $keyType = 'device', array $metadata = []): array
+    public function storeDeviceKey(string $label, string $publicKey, string $keyType = 'device', array $metadata = [], bool $isTemporary = false, ?int $ttlMinutes = null): array
     {
-        return $this->post('user/keys', [
+        $data = [
             'label' => $label,
             'key_type' => $keyType,
             'public_key' => $publicKey,
             'metadata' => $metadata ?: null,
-        ]);
+        ];
+
+        if ($isTemporary) {
+            $data['is_temporary'] = true;
+            $data['ttl_minutes'] = $ttlMinutes ?? 15;
+        }
+
+        return $this->post('user/keys', $data);
     }
 
     /**

@@ -49,4 +49,17 @@ return [
     |
     */
     'api_url' => env('SECRET_STASH_API_URL', 'https://secretstash.cloud'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Custom Key Directory
+    |--------------------------------------------------------------------------
+    |
+    | Override the default ~/.secret-stash key directory. Useful for CI/CD
+    | pipelines where temporary keys are stored in an isolated directory.
+    | This can also be set via the SECRET_STASH_KEY_DIR system environment
+    | variable, which takes priority over this config value.
+    |
+    */
+    'key_dir' => env('SECRET_STASH_KEY_DIR'),
 ];

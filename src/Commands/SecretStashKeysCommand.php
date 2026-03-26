@@ -29,7 +29,9 @@ class SecretStashKeysCommand extends BasicCommand
                             {--force : Force device key regeneration}
                             {--label= : Device label for this machine}
                             {--copies=1 : Number of recovery share copies to print}
-                            {--output-dir= : Directory to save recovery share files}';
+                            {--output-dir= : Directory to save recovery share files}
+                            {--temporary : Create a temporary key that expires automatically}
+                            {--ttl=15 : TTL in minutes for temporary keys (default: 15, min: 5, max: 60)}';
 
     protected $description = 'Manage your SecretStash device keys';
 
@@ -39,6 +41,10 @@ class SecretStashKeysCommand extends BasicCommand
             'What would you like to do?',
             ['status', 'init', 'sync', 'recovery']
         );
+
+        if ($action !== 'init' && ($this->option('temporary') || (int) $this->option('ttl') !== 15)) {
+            warning('The --temporary and --ttl options only apply to the "init" action and will be ignored.');
+        }
 
         try {
             return match ($action) {
@@ -106,6 +112,12 @@ class SecretStashKeysCommand extends BasicCommand
 
     protected function initializeKeys(SecretStashClient $client): int
     {
+        $isTemporary = (bool) $this->option('temporary');
+
+        if ($isTemporary) {
+            return $this->initializeTemporaryKey($client);
+        }
+
         if ($this->hasLocalPrivateKey() && ! $this->option('force')) {
             $overwrite = confirm(
                 label: 'Device keys already exist locally. Generate new keys? (This device will need access re-granted)',
@@ -312,6 +324,98 @@ class SecretStashKeysCommand extends BasicCommand
         }
 
         return $metadata['public_key'];
+    }
+
+    protected function initializeTemporaryKey(SecretStashClient $client): int
+    {
+        $ttl = (int) $this->option('ttl');
+        if ($ttl < 5 || $ttl > 60) {
+            error('TTL must be between 5 and 60 minutes.');
+
+            return self::FAILURE;
+        }
+
+        $this->newLine();
+        $this->line('<fg=cyan;options=bold>Initializing Temporary Device Key</>');
+        $this->line("<fg=yellow>Expires in {$ttl} minutes</>");
+        $this->newLine();
+
+        $label = $this->option('label') ?? 'CI/CD Temporary Key ('.(gethostname() ?: 'Unknown Host').')';
+
+        $keyPair = spin(
+            callback: fn () => CryptoHelper::generateRSAKeyPair(),
+            message: 'Generating RSA-4096 temporary key pair...'
+        );
+
+        $tempDir = $this->createTempKeyDirectory();
+        $tempPrivateKeyFile = $tempDir.'/device_private_key.pem';
+        $tempDeviceMetaFile = $tempDir.'/device.json';
+
+        if (file_put_contents($tempPrivateKeyFile, $keyPair->private_key) === false) {
+            throw new \RuntimeException('Failed to save temporary private key file.');
+        }
+        chmod($tempPrivateKeyFile, 0600);
+        info("Temporary private key saved to: {$tempDir}");
+
+        $metadata = [
+            'label' => $label,
+            'hostname' => gethostname() ?: null,
+            'platform' => PHP_OS_FAMILY,
+            'temporary' => true,
+            'ttl_minutes' => $ttl,
+        ];
+
+        try {
+            $response = $client->storeDeviceKey($label, $keyPair->public_key, 'device', $metadata, true, $ttl);
+            $deviceKey = $response['data'] ?? null;
+
+            if (! $deviceKey || ! isset($deviceKey['id'])) {
+                throw new \RuntimeException('Failed to register temporary device key.');
+            }
+
+            $deviceMeta = [
+                'device_key_id' => $deviceKey['id'],
+                'label' => $deviceKey['label'] ?? $label,
+                'public_key' => $deviceKey['public_key'] ?? $keyPair->public_key,
+                'fingerprint' => $deviceKey['fingerprint'] ?? CryptoHelper::fingerprint($keyPair->public_key),
+                'is_temporary' => true,
+                'expires_at' => $deviceKey['expires_at'] ?? null,
+            ];
+
+            $content = json_encode($deviceMeta, JSON_PRETTY_PRINT);
+            if (file_put_contents($tempDeviceMetaFile, $content) === false) {
+                throw new \RuntimeException('Failed to save temporary device metadata file.');
+            }
+            chmod($tempDeviceMetaFile, 0600);
+        } catch (\Throwable $e) {
+            // Clean up temp directory with private key material on failure
+            @unlink($tempDeviceMetaFile);
+            @unlink($tempPrivateKeyFile);
+            @rmdir($tempDir);
+
+            throw $e;
+        }
+
+        $this->newLine();
+        $this->line('<fg=green;options=bold>✓</> Temporary device key registered!');
+        $this->line("<fg=yellow>Key directory:</> {$tempDir}");
+        $this->line('<fg=yellow>Expires at:</> '.($deviceKey['expires_at'] ?? 'in '.$ttl.' minutes'));
+        $this->newLine();
+        info('Set SECRET_STASH_KEY_DIR='.$tempDir.' to use this temporary key.');
+        $this->line('<fg=gray>Remember to delete '.$tempDir.' after the key expires.</>');
+
+        return self::SUCCESS;
+    }
+
+    protected function createTempKeyDirectory(): string
+    {
+        $tempDir = sys_get_temp_dir().'/secret-stash-tmp-'.bin2hex(random_bytes(8));
+
+        if (! is_dir($tempDir)) {
+            mkdir($tempDir, 0700, true);
+        }
+
+        return $tempDir;
     }
 
     protected function resolveDeviceLabel(): string
