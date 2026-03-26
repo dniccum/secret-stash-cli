@@ -2,6 +2,16 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.8.0 - 2026-03-26
+
+### What's Changed
+
+* Fix: Environments command with no action prompts user instead of defaulting to list by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/32
+* fix: handle empty variable values during CLI push by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/34
+* feat: add temporary device key support for CI/CD pipelines (SEC-12) by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/36
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.7.0...v0.8.0
+
 ## v0.7.0 - 2026-03-25
 
 ### What's Changed
