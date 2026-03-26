@@ -336,7 +336,7 @@ class SecretStashKeysCommand extends BasicCommand
         $this->line("<fg=yellow>Expires in {$ttl} minutes</>");
         $this->newLine();
 
-        $label = $this->option('label') ?? 'CI/CD Temporary Key ('.gethostname().')';
+        $label = $this->option('label') ?? 'CI/CD Temporary Key ('.(gethostname() ?: 'Unknown Host').')';
 
         $keyPair = spin(
             callback: fn () => CryptoHelper::generateRSAKeyPair(),
