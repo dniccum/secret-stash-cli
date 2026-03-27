@@ -11,6 +11,7 @@ use Dniccum\SecretStash\Support\VariableUtility;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
 
@@ -41,7 +42,10 @@ class SecretStashVariablesCommand extends BasicCommand
 
     public function handle(SecretStashClient $client): int
     {
-        $action = $this->argument('action') ?? 'list';
+        $action = $this->argument('action') ?? select(
+            'What would you like to do?',
+            ['list', 'pull', 'push']
+        );
 
         try {
             $this->setEnvironment();
