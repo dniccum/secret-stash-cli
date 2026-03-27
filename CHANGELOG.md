@@ -2,6 +2,14 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v0.8.1 - 2026-03-27
+
+### What's Changed
+
+* feat: enhance SecretStashVariablesCommand to prompt user for action s… by @dniccum in https://github.com/dniccum/secret-stash-cli/pull/38
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.8.0...v0.8.1
+
 ## v0.8.0 - 2026-03-26
 
 ### What's Changed
