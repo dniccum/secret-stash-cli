@@ -179,6 +179,8 @@ abstract class BasicCommand extends Command
     /**
      * Override execute to support standalone mode without Laravel's service container.
      * When running outside Laravel, handle() is called directly without DI.
+     *
+     * @phpstan-ignore method.notFound
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
