@@ -92,7 +92,7 @@ class SecretStashKeysCommand extends BasicCommand
             $this->line('<fg=green>✓</> Server device keys: <fg=green>'.count($serverKeys).'</>');
 
             if ($localMeta && ($localMeta['fingerprint'] ?? null)) {
-                $match = array_values(array_filter($serverKeys, fn ($k) => ($k['fingerprint'] ?? null) === $localMeta['fingerprint']))[0] ?? null;
+                $match = collect($serverKeys)->firstWhere('fingerprint', $localMeta['fingerprint']);
                 if ($match) {
                     $this->line('<fg=green>✓</> This device is registered on the server.');
                 } else {
@@ -198,7 +198,7 @@ class SecretStashKeysCommand extends BasicCommand
 
         $response = $client->getUserKeys();
         $serverKeys = $response['data'] ?? [];
-        $match = array_values(array_filter($serverKeys, fn ($k) => ($k['fingerprint'] ?? null) === $fingerprint))[0] ?? null;
+        $match = collect($serverKeys)->firstWhere('fingerprint', $fingerprint);
 
         if (! $match) {
             error('No matching device key found on the server. Run "secret-stash:keys init" to register.');
@@ -227,7 +227,7 @@ class SecretStashKeysCommand extends BasicCommand
         $this->newLine();
 
         $response = $client->getUserKeys();
-        $existingRecovery = array_values(array_filter($response['data'] ?? [], fn ($k) => ($k['key_type'] ?? null) === 'recovery'))[0] ?? null;
+        $existingRecovery = collect($response['data'] ?? [])->firstWhere('key_type', 'recovery');
 
         if ($existingRecovery && ! $this->option('force')) {
             $replace = confirm(
