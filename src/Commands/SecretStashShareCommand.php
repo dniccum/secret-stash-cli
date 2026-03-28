@@ -22,8 +22,11 @@ class SecretStashShareCommand extends BasicCommand
 
     protected $description = 'Share an environment with team members';
 
-    public function handle(SecretStashClient $client, SecretStashKeysCommand $keysCommand): int
+    public function handle(?SecretStashClient $client = null, ?SecretStashKeysCommand $keysCommand = null): int
     {
+        $client = $client ?? $this->resolveClient();
+        $keysCommand = $keysCommand ?? new SecretStashKeysCommand;
+
         try {
             $this->setEnvironment();
 

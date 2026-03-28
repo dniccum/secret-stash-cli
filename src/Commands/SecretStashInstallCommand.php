@@ -2,6 +2,8 @@
 
 namespace Dniccum\SecretStash\Commands;
 
+use Dniccum\SecretStash\Support\ConfigResolver;
+
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 
@@ -22,12 +24,15 @@ class SecretStashInstallCommand extends BasicCommand
      */
     public function handle(): int
     {
-        if (confirm(
-            label: 'Would you like to publish the SecretStash config file?',
-        )) {
-            $this->call('vendor:publish', [
-                '--tag' => 'secret-stash-config',
-            ]);
+        // Config publishing is only available in Laravel
+        if (ConfigResolver::isLaravel()) {
+            if (confirm(
+                label: 'Would you like to publish the SecretStash config file?',
+            )) {
+                $this->call('vendor:publish', [
+                    '--tag' => 'secret-stash-config',
+                ]);
+            }
         }
 
         $this->setEnvironment();

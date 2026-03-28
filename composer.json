@@ -7,6 +7,8 @@
         "environment",
         "variables",
         "laravel",
+        "symfony",
+        "php",
         "secret-stash-cli"
     ],
     "homepage": "https://github.com/dniccum/secret-stash-cli",
@@ -18,13 +20,12 @@
             "role": "Owner"
         }
     ],
+    "bin": ["bin/secret-stash"],
     "require": {
         "php": "^8.2",
         "guzzlehttp/guzzle": "^7.10",
         "illuminate/console": "^11.0|^12.0|^13.0",
-        "illuminate/http": "^11.0|^12.0|^13.0",
         "illuminate/support": "^11.0|^12.0|^13.0",
-        "illuminate/contracts": "^11.0|^12.0|^13.0",
         "laravel/prompts": "^0.3.0",
         "spatie/laravel-package-tools": "^1.16",
         "endroid/qr-code": "^5.0.9"

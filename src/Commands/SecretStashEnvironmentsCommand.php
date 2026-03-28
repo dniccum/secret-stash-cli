@@ -4,6 +4,8 @@ namespace Dniccum\SecretStash\Commands;
 
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
+use Dniccum\SecretStash\Support\ConfigResolver;
+use Illuminate\Support\Str;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -32,17 +34,19 @@ class SecretStashEnvironmentsCommand extends BasicCommand
      */
     protected function setEnvironment(): void
     {
-        $this->applicationId = $this->option('application') ?? config('secret-stash.application_id') ?? '';
+        $this->applicationId = $this->option('application') ?? ConfigResolver::get('application_id') ?? '';
 
         if (empty($this->applicationId)) {
             throw new InvalidEnvironmentConfiguration('An application ID must be provided.');
         }
 
-        $this->environmentSlug = config('app.env') ?? '';
+        $this->environmentSlug = ConfigResolver::get('app_env') ?? '';
     }
 
-    public function handle(SecretStashClient $client): int
+    public function handle(?SecretStashClient $client = null): int
     {
+        $client = $client ?? $this->resolveClient();
+
         $action = $this->argument('action') ?? select(
             'What would you like to do?',
             ['list', 'create']
@@ -111,7 +115,7 @@ class SecretStashEnvironmentsCommand extends BasicCommand
 
         $slug = $this->option('slug') ?? text(
             label: 'What should the environment slug be?',
-            default: \Str::slug($name),
+            default: Str::slug($name),
             required: true,
             hint: 'This will be used to reference the environment in your application configuration.',
         );

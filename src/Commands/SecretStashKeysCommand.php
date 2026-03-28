@@ -35,8 +35,10 @@ class SecretStashKeysCommand extends BasicCommand
 
     protected $description = 'Manage your SecretStash device keys';
 
-    public function handle(SecretStashClient $client): int
+    public function handle(?SecretStashClient $client = null): int
     {
+        $client = $client ?? $this->resolveClient();
+
         $action = $this->argument('action') ?? select(
             'What would you like to do?',
             ['status', 'init', 'sync', 'recovery']
@@ -90,7 +92,7 @@ class SecretStashKeysCommand extends BasicCommand
             $this->line('<fg=green>✓</> Server device keys: <fg=green>'.count($serverKeys).'</>');
 
             if ($localMeta && ($localMeta['fingerprint'] ?? null)) {
-                $match = collect($serverKeys)->firstWhere('fingerprint', $localMeta['fingerprint']);
+                $match = array_values(array_filter($serverKeys, fn ($k) => ($k['fingerprint'] ?? null) === $localMeta['fingerprint']))[0] ?? null;
                 if ($match) {
                     $this->line('<fg=green>✓</> This device is registered on the server.');
                 } else {
@@ -196,7 +198,7 @@ class SecretStashKeysCommand extends BasicCommand
 
         $response = $client->getUserKeys();
         $serverKeys = $response['data'] ?? [];
-        $match = collect($serverKeys)->firstWhere('fingerprint', $fingerprint);
+        $match = array_values(array_filter($serverKeys, fn ($k) => ($k['fingerprint'] ?? null) === $fingerprint))[0] ?? null;
 
         if (! $match) {
             error('No matching device key found on the server. Run "secret-stash:keys init" to register.');
@@ -225,7 +227,7 @@ class SecretStashKeysCommand extends BasicCommand
         $this->newLine();
 
         $response = $client->getUserKeys();
-        $existingRecovery = collect($response['data'] ?? [])->firstWhere('key_type', 'recovery');
+        $existingRecovery = array_values(array_filter($response['data'] ?? [], fn ($k) => ($k['key_type'] ?? null) === 'recovery'))[0] ?? null;
 
         if ($existingRecovery && ! $this->option('force')) {
             $replace = confirm(
