@@ -38,7 +38,7 @@ class SecretStashInstallCommand extends BasicCommand
 
         try {
             $this->setEnvironment();
-        } catch (\Exception|\Throwable $e) {
+        } catch (\Throwable $e) {
             error('Error: '.$e->getMessage());
 
             return self::FAILURE;
