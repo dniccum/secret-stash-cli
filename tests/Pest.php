@@ -3,7 +3,7 @@
 use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\Tests\TestCase;
 
-uses(TestCase::class)->in(__DIR__)
+uses(TestCase::class)->in('Feature')
     ->beforeEach(function () {
         // Create RSA Pair
         $this->dir = sys_get_temp_dir().'/.secret-stash';

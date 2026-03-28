@@ -6,9 +6,11 @@ use Dniccum\SecretStash\Contracts\ApplicationEnvironmentVariable;
 use Dniccum\SecretStash\Exceptions\Environments\NoEnvironmentsFound;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
+use Dniccum\SecretStash\Support\ConfigResolver;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Container\BindingResolutionException;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\text;
@@ -31,8 +33,8 @@ abstract class BasicCommand extends Command
     {
         parent::__construct();
 
-        $customDir = getenv('SECRET_STASH_KEY_DIR') ?: (config('secret-stash.key_dir') ?: false);
-        $this->path = (! app()->runningUnitTests() && $customDir) ? $customDir : $this->defaultPrivateKeyDirectory();
+        $customDir = ConfigResolver::get('key_dir');
+        $this->path = (! ConfigResolver::isRunningTests() && $customDir) ? $customDir : $this->defaultPrivateKeyDirectory();
         $this->privateKeyFile = $this->path.'/device_private_key.pem';
         $this->deviceMetaFile = $this->path.'/device.json';
 
@@ -44,7 +46,7 @@ abstract class BasicCommand extends Command
     protected function defaultPrivateKeyDirectory(): string
     {
         $homeDir = $_SERVER['HOME'] ?? $_SERVER['USERPROFILE'] ?? '/tmp';
-        if (app()->runningUnitTests()) {
+        if (ConfigResolver::isRunningTests()) {
             $homeDir = sys_get_temp_dir();
         }
 
@@ -57,8 +59,8 @@ abstract class BasicCommand extends Command
      */
     protected function setEnvironment(): void
     {
-        $this->applicationId = $this->getApplicationOption() ? $this->option('application') : (config('secret-stash.application_id') ?? '');
-        $this->environmentSlug = $this->getEnvironmentOption() ? $this->option('environment') : (config('app.env') ?? '');
+        $this->applicationId = $this->getApplicationOption() ? $this->option('application') : (ConfigResolver::get('application_id') ?? '');
+        $this->environmentSlug = $this->getEnvironmentOption() ? $this->option('environment') : (ConfigResolver::get('app_env') ?? '');
 
         if (empty($this->applicationId)) {
             throw new InvalidEnvironmentConfiguration('An application ID must be provided.');
@@ -159,22 +161,33 @@ abstract class BasicCommand extends Command
 
     /**
      * @return array<int, string>
-     *
-     * @throws BindingResolutionException
      */
     protected function ignoredVariables(): array
     {
-        if (! function_exists('app')) {
-            return [];
+        return ConfigResolver::ignoredVariables();
+    }
+
+    /**
+     * Create a new SecretStashClient instance.
+     * Used by commands to resolve the client without Laravel's DI container.
+     */
+    protected function resolveClient(): SecretStashClient
+    {
+        return new SecretStashClient;
+    }
+
+    /**
+     * Override execute to support standalone mode without Laravel's service container.
+     * When running outside Laravel, handle() is called directly without DI.
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        // If running inside Laravel, use the parent (DI-enabled) execute
+        if (ConfigResolver::isLaravel()) {
+            return parent::execute($input, $output);
         }
 
-        $app = app();
-        if (! $app->bound('config')) {
-            return [];
-        }
-
-        $ignored = $app->make('config')->get('secret-stash.ignored_variables', []);
-
-        return is_array($ignored) ? array_values($ignored) : [];
+        // Standalone mode: call handle() directly without dependency injection
+        return (int) $this->handle(); // @phpstan-ignore method.notFound
     }
 }

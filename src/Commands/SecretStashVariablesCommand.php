@@ -7,6 +7,7 @@ use Dniccum\SecretStash\Contracts\ApplicationEnvironmentVariable;
 use Dniccum\SecretStash\Crypto\CryptoHelper;
 use Dniccum\SecretStash\SecretStashClient;
 use Dniccum\SecretStash\Support\VariableUtility;
+use Illuminate\Support\Str;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
@@ -40,8 +41,10 @@ class SecretStashVariablesCommand extends BasicCommand
         $this->variableUtility = new VariableUtility($this->ignoredVariables());
     }
 
-    public function handle(SecretStashClient $client): int
+    public function handle(?SecretStashClient $client = null): int
     {
+        $client = $client ?? $this->resolveClient();
+
         $action = $this->argument('action') ?? select(
             'What would you like to do?',
             ['list', 'pull', 'push']
@@ -240,11 +243,7 @@ class SecretStashVariablesCommand extends BasicCommand
                         $client->createVariable($this->applicationId, $this->environmentSlug, $name, $payload);
                         $created++;
                     } catch (\Exception $e) {
-                        logger()->debug($e->getMessage(), [
-                            'environment' => $this->environmentSlug,
-                            'variable' => $name,
-                            'value' => '[REDACTED]',
-                        ]);
+                        // Log failure silently; error count is tracked below
                         $failed++;
                     }
                 }
@@ -303,7 +302,7 @@ class SecretStashVariablesCommand extends BasicCommand
         $exitCode = $this->call('secret-stash:environments', [
             'action' => 'create',
             '--application' => $this->applicationId,
-            '--name' => str($this->environmentSlug)->title()->toString(),
+            '--name' => Str::title($this->environmentSlug),
             '--slug' => $this->environmentSlug,
             '--type' => 'local',
         ]);

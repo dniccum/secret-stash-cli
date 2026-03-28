@@ -35,8 +35,10 @@ class SecretStashKeysCommand extends BasicCommand
 
     protected $description = 'Manage your SecretStash device keys';
 
-    public function handle(SecretStashClient $client): int
+    public function handle(?SecretStashClient $client = null): int
     {
+        $client = $client ?? $this->resolveClient();
+
         $action = $this->argument('action') ?? select(
             'What would you like to do?',
             ['status', 'init', 'sync', 'recovery']
