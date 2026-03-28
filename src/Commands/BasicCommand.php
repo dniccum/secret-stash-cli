@@ -8,7 +8,6 @@ use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\SecretStashClient;
 use Dniccum\SecretStash\Support\ConfigResolver;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Container\Container;
 use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -183,8 +182,8 @@ abstract class BasicCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // If running inside Laravel with a container, use the parent (DI-enabled) execute
-        if (isset($this->laravel) && $this->laravel instanceof Container) {
+        // If running inside Laravel, use the parent (DI-enabled) execute
+        if (ConfigResolver::isLaravel()) {
             return parent::execute($input, $output);
         }
 
