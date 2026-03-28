@@ -60,7 +60,7 @@ class SecretStashShareCommand extends BasicCommand
                     $status,
                 ];
 
-                if ($deviceKey['needs_envelope']) {
+                if ($deviceKey['needs_envelope'] ?? false) {
                     $needsEnvelope[] = $deviceKey;
                 }
             }

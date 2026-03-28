@@ -73,10 +73,7 @@
         "laravel": {
             "providers": [
                 "Dniccum\\SecretStash\\SecretStashServiceProvider"
-            ],
-            "aliases": {
-                "SecretStash": "Dniccum\\SecretStash\\Facades\\SecretStash"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",
