@@ -159,7 +159,16 @@ class ConfigResolver
             return static::$dotenvCache;
         }
 
-        static::$dotenvCache = VariableUtility::parseEnvContent($content);
+        static::$dotenvCache = array_map(function (string $value): string {
+            if (
+                (str_starts_with($value, '"') && str_ends_with($value, '"'))
+                || (str_starts_with($value, "'") && str_ends_with($value, "'"))
+            ) {
+                return substr($value, 1, -1);
+            }
+
+            return $value;
+        }, VariableUtility::parseEnvContent($content));
 
         return static::$dotenvCache;
     }
