@@ -2,6 +2,15 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v1.0.0 - 2026-03-28
+
+### What's Changed
+
+* feat: add Laravel 13 (illuminate ^13.0) support [SEC-16] by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/39
+* feat: Add non-Laravel framework support (SEC2-6) by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/40
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v0.8.1...v1.0.0
+
 ## v0.8.1 - 2026-03-27
 
 ### What's Changed
