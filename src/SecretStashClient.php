@@ -7,10 +7,9 @@ use Dniccum\SecretStash\Exceptions\ApiToken\MissingApiToken;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
 use Dniccum\SecretStash\Support\ConfigResolver;
 use Dniccum\SecretStash\Support\VariableUtility;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 
 class SecretStashClient
 {
@@ -19,6 +18,8 @@ class SecretStashClient
     protected ?string $apiToken;
 
     protected ?string $encryptionKey = null;
+
+    protected ?Client $httpClient = null;
 
     /**
      * @throws InvalidEnvironmentConfiguration
@@ -40,21 +41,39 @@ class SecretStashClient
     }
 
     /**
-     * Build a configured HTTP client instance.
+     * Build a configured Guzzle HTTP client instance.
      */
-    protected function buildClient(): PendingRequest
+    protected function buildClient(): Client
     {
         if (! $this->apiToken) {
             throw new MissingApiToken;
         }
 
-        return Http::baseUrl($this->apiUrl.'/api/')
-            ->withToken($this->apiToken)
-            ->withUserAgent('SecretStash-CLI/1.0')
-            ->acceptJson()
-            ->asJson()
-            ->timeout(30)
-            ->throw();
+        if ($this->httpClient === null) {
+            $this->httpClient = new Client([
+                'base_uri' => rtrim($this->apiUrl, '/').'/api/',
+                'headers' => [
+                    'Authorization' => 'Bearer '.$this->apiToken,
+                    'User-Agent' => 'SecretStash-CLI/1.0',
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ],
+                'timeout' => 30,
+                'http_errors' => true,
+            ]);
+        }
+
+        return $this->httpClient;
+    }
+
+    /**
+     * Set a custom HTTP client (useful for testing).
+     */
+    public function setHttpClient(Client $client): static
+    {
+        $this->httpClient = $client;
+
+        return $this;
     }
 
     /**
@@ -63,8 +82,14 @@ class SecretStashClient
     public function get(string $endpoint, array $query = []): array
     {
         try {
-            $response = $this->buildClient()->get($endpoint, $query);
-            return $response->json() ?? [];
+            $response = $this->buildClient()->get($endpoint, [
+                'query' => $query,
+            ]);
+
+            $body = $response->getBody()->getContents();
+            $decoded = json_decode($body, true);
+
+            return is_array($decoded) ? $decoded : [];
         } catch (\Throwable $e) {
             $this->handleException($e);
         }
@@ -76,8 +101,14 @@ class SecretStashClient
     public function post(string $endpoint, array $data = []): array
     {
         try {
-            $response = $this->buildClient()->post($endpoint, $data);
-            return $response->json() ?? [];
+            $response = $this->buildClient()->post($endpoint, [
+                'json' => $data,
+            ]);
+
+            $body = $response->getBody()->getContents();
+            $decoded = json_decode($body, true);
+
+            return is_array($decoded) ? $decoded : [];
         } catch (\Throwable $e) {
             $this->handleException($e);
         }
@@ -88,8 +119,8 @@ class SecretStashClient
      */
     protected function handleException(\Throwable $e): never
     {
-        if ($e instanceof RequestException) {
-            $statusCode = $e->response->status();
+        if ($e instanceof RequestException && $e->hasResponse()) {
+            $statusCode = $e->getResponse()->getStatusCode();
 
             if ($statusCode === 401) {
                 throw new InvalidApiToken(
@@ -107,13 +138,14 @@ class SecretStashClient
      */
     protected function formatErrorMessage(\Throwable $e): string
     {
-        if ($e instanceof ConnectionException) {
+        if ($e instanceof ConnectException) {
             return 'Unable to connect to the SecretStash API. Please check your network connection and API URL configuration.';
         }
 
-        if ($e instanceof RequestException) {
-            $statusCode = $e->response->status();
-            $decoded = $e->response->json();
+        if ($e instanceof RequestException && $e->hasResponse()) {
+            $statusCode = $e->getResponse()->getStatusCode();
+            $body = $e->getResponse()->getBody()->getContents();
+            $decoded = json_decode($body, true);
 
             if (is_array($decoded) && isset($decoded['message']) && is_string($decoded['message'])) {
                 return $decoded['message'];
