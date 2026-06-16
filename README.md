@@ -5,9 +5,13 @@
 
 ![SecretStash](og-image.png)
 
-# SecretStash CLI
+# SecretStash CLI (PHP / Laravel)
 
-A Laravel Composer package that provides Artisan commands for interacting with the [SecretStash](https://secretstash.cloud) REST API. Manage your environment variables directly from the command line with an intuitive, interactive interface.
+> Stop sharing `.env` files in Slack.
+
+The SecretStash CLI lets you securely sync environment variables across your team, applications, and environments—directly from your Laravel or PHP project.
+
+Built for developers who want a simple, secure way to manage secrets without breaking their workflow.
 
 ## Requirements
 
@@ -15,53 +19,155 @@ A Laravel Composer package that provides Artisan commands for interacting with t
 - Laravel 11 or higher
 - A SecretStash API Key
 
-## Installation
+---
 
-Install the package via Composer:
+## 🚀 Why SecretStash?
+
+If you’ve ever:
+
+- Shared `.env` files over Slack, email, or Notion
+- Accidentally committed secrets to Git
+- Struggled keeping dev/staging/prod configs in sync
+- Spent too long onboarding teammates with environment setup
+
+👉 SecretStash fixes this in minutes.
+
+---
+
+## ⚡ Quick Start (2 Minutes)
+
+### 1. Install
 
 ```bash
 composer require dniccum/secret-stash-cli
 ```
 
-Run the installer to publish the configuration file and generate the encryption keys used to secure your variables:
+---
+
+### 2. Authenticate
 
 ```bash
-php artisan secret-stash:install
+php artisan secret-stash:login
 ```
 
-> [!IMPORTANT]
-> This package creates a `~/.secret-stash` directory on your machine (or the path specified by the `SECRET_STASH_KEY_DIR` environment variable). Ensure this folder is secure as it contains the keys required to decrypt your environment variables.
+---
 
-## Configuration
-
-Add the following environment variables to your application's `.env` file:
-
-```dotenv
-SECRET_STASH_API_TOKEN=your_token_here
-SECRET_STASH_APPLICATION_ID=your_application_id_here
-```
-
-- **API Key**: Create a token in SecretStash by navigating to your profile settings and accessing the "Tokens" tab.
-- **Application ID**: Create or select an application in SecretStash and copy its ID from the dashboard.
-
-> [!NOTE]
-> Both the API key and Application ID are required. The CLI will throw an error if either is missing.
-
-## Quick Example
-
-Pull your environment's variables from SecretStash into your local `.env` file:
+### 3. Pull your environment variables
 
 ```bash
-php artisan secret-stash:variables pull
+php artisan secret-stash:pull
 ```
 
-Push your local `.env` variables to SecretStash:
+✅ Your `.env` file is now synced and secure.
+
+---
+
+## 🌐 Use with SecretStash Cloud
+
+The CLI is designed to work with SecretStash Cloud:
+
+👉 https://secretstash.cloud
+
+With the cloud platform, you can:
+
+- Manage applications and environments in one place
+- Share secrets securely across your team
+- Sync configs across multiple machines instantly
+- Avoid ever exposing sensitive values
+
+Start free — no credit card required.
+
+---
+
+## 🔐 Secure by Design
+
+SecretStash uses **zero-knowledge encryption**:
+
+- Secrets are encrypted locally before being sent
+- Your encryption keys never leave your machine
+- SecretStash servers never see your raw values
+
+> Only you and your team can decrypt your secrets.
+
+---
+
+## ⚙️ How It Works
+
+1. Store your environment variables in SecretStash Cloud
+2. Encrypt values locally before transmission
+3. Use the CLI to sync `.env` files across environments
+
+This ensures a secure, consistent workflow from local development to production.
+
+---
+
+## 💡 Common Use Cases
+
+### 👥 Team Collaboration
+Keep your entire team in sync without sharing sensitive files manually.
+
+### 🌍 Environment Management
+Manage separate configs for local, staging, and production.
+
+### 🚀 Laravel Development
+Plug directly into your Laravel workflow via Artisan commands.
+
+### 🔁 CI/CD Pipelines
+Securely pull environment variables during deployment.
+
+---
+
+## 📦 Available Commands
 
 ```bash
-php artisan secret-stash:variables push
+php artisan secret-stash:login   # Authenticate with SecretStash
+php artisan secret-stash:pull    # Pull environment variables
+php artisan secret-stash:push    # Push local changes
 ```
 
-For the full list of available commands and options, visit the [SecretStash CLI documentation](https://docs.secretstash.cloud/command-line-interface/commands).
+---
+
+## 🧪 Import Existing Projects
+
+Already have a `.env` file?
+
+You can import your existing variables into SecretStash and start syncing immediately.
+
+---
+
+## 🆚 Why Not Just Use `.env` Files?
+
+`.env` files alone:
+
+- ❌ Hard to share securely
+- ❌ Easy to leak
+- ❌ Not synced across teams
+- ❌ No access control
+
+SecretStash:
+
+- ✅ Secure sharing
+- ✅ Encrypted end-to-end
+- ✅ Built for teams
+- ✅ CLI-native workflow
+
+---
+
+## 📚 Documentation
+
+Full documentation available at:
+
+👉 https://docs.secretstash.cloud
+
+---
+
+## ❤️ Ready to stop leaking secrets?
+
+Start using SecretStash today:
+
+👉 https://secretstash.cloud
+
+---
 
 ## Testing
 
@@ -74,6 +180,8 @@ or:
 ```bash
 ./vendor/bin/pest
 ```
+
+---
 
 ## Changelog
 
