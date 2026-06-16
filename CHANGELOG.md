@@ -2,6 +2,15 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## v1.0.2 - 2026-06-16
+
+### What's Changed
+
+* Bump dependabot/fetch-metadata from 2.5.0 to 3.1.0 by @dependabot[bot] in https://github.com/dniccum/secret-stash-cli/pull/43
+* Updates documentation within the README
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v1.0.1...v1.0.2
+
 ## v1.0.1 - 2026-03-28
 
 ### What's Changed
