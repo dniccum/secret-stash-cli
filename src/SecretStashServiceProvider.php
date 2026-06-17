@@ -6,6 +6,7 @@ use Dniccum\SecretStash\Commands\SecretStashEnvelopeCommand;
 use Dniccum\SecretStash\Commands\SecretStashEnvironmentsCommand;
 use Dniccum\SecretStash\Commands\SecretStashInstallCommand;
 use Dniccum\SecretStash\Commands\SecretStashKeysCommand;
+use Dniccum\SecretStash\Commands\SecretStashLoginCommand;
 use Dniccum\SecretStash\Commands\SecretStashVariablesCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -21,6 +22,7 @@ class SecretStashServiceProvider extends PackageServiceProvider
                 SecretStashEnvironmentsCommand::class,
                 SecretStashInstallCommand::class,
                 SecretStashKeysCommand::class,
+                SecretStashLoginCommand::class,
                 SecretStashVariablesCommand::class,
                 SecretStashEnvelopeCommand::class,
             ]);
