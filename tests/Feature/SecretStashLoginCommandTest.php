@@ -2,9 +2,11 @@
 
 use Dniccum\SecretStash\Commands\SecretStashLoginCommand;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Psr7\Request;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Config;
 
 beforeEach(function () {
@@ -29,9 +31,9 @@ it('registers the login command', function () {
 
 it('shows error when API is unreachable', function () {
     $mock = new MockHandler([
-        new \GuzzleHttp\Exception\ConnectException(
+        new ConnectException(
             'Could not resolve host',
-            new \GuzzleHttp\Psr7\Request('POST', 'cli/auth/sessions')
+            new Request('POST', 'cli/auth/sessions')
         ),
     ]);
 
@@ -61,7 +63,7 @@ it('shows error when API is unreachable', function () {
                 $body = json_decode($response->getBody()->getContents(), true);
 
                 return $body['data'] ?? null;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $this->error('Failed to initiate login session. Please check your network connection and API URL.');
 
                 return null;
@@ -69,7 +71,7 @@ it('shows error when API is unreachable', function () {
         }
     };
 
-    $this->app->make(\Illuminate\Contracts\Console\Kernel::class)->registerCommand($command);
+    $this->app->make(Kernel::class)->registerCommand($command);
 
     $this->artisan('secret-stash:login', ['--no-browser' => true])
         ->expectsOutputToContain('Failed to initiate login session')
