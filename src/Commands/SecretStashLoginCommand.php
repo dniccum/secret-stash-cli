@@ -6,14 +6,13 @@ use Dniccum\SecretStash\Support\ConfigResolver;
 use Dniccum\SecretStash\Support\VariableUtility;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use Illuminate\Console\Command;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\warning;
 
-class SecretStashLoginCommand extends Command
+class SecretStashLoginCommand extends BasicCommand
 {
     protected $signature = 'secret-stash:login
         {--no-browser : Do not attempt to open the browser automatically}';
@@ -21,11 +20,6 @@ class SecretStashLoginCommand extends Command
     protected $description = 'Authenticate with SecretStash and store an API token locally';
 
     protected string $apiUrl;
-
-    public function __construct()
-    {
-        parent::__construct();
-    }
 
     public function handle(): int
     {
@@ -141,12 +135,12 @@ class SecretStashLoginCommand extends Command
 
     protected function openBrowser(string $url): void
     {
-        $command = match (PHP_OS_FAMILY) {
-            'Darwin' => 'open',
-            'Windows' => 'start',
-            default => 'xdg-open',
-        };
-
-        @exec("{$command} ".escapeshellarg($url).' > /dev/null 2>&1 &');
+        if (PHP_OS_FAMILY === 'Windows') {
+            @exec('start "" '.escapeshellarg($url));
+        } elseif (PHP_OS_FAMILY === 'Darwin') {
+            @exec('open '.escapeshellarg($url).' > /dev/null 2>&1 &');
+        } else {
+            @exec('xdg-open '.escapeshellarg($url).' > /dev/null 2>&1 &');
+        }
     }
 }
