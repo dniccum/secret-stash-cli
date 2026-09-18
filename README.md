@@ -165,7 +165,7 @@ Full documentation available at:
 
 Start using SecretStash today:
 
-👉 https://secretstash.cloud
+👉 [https://secretstash.cloud](https://secretstash.cloud/g)
 
 ---
 
