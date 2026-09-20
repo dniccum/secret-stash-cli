@@ -39,6 +39,22 @@ it('resolves the api version from an environment variable', function () {
     putenv('SECRET_STASH_API_VERSION');
 });
 
+it('honors an explicit empty string api version as the legacy unversioned override', function () {
+    putenv('SECRET_STASH_API_VERSION=');
+
+    expect(ConfigResolver::get('api_version'))->toBe('');
+
+    putenv('SECRET_STASH_API_VERSION');
+});
+
+it('does not treat an empty string as an override for other keys', function () {
+    putenv('SECRET_STASH_API_URL=');
+
+    expect(ConfigResolver::get('api_url'))->toBe('https://secretstash.cloud');
+
+    putenv('SECRET_STASH_API_URL');
+});
+
 it('returns provided default when no value is found', function () {
     expect(ConfigResolver::get('nonexistent_key', 'fallback'))->toBe('fallback');
 });

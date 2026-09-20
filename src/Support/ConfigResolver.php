@@ -50,7 +50,11 @@ class ConfigResolver
         $envKey = static::$envMap[$key] ?? null;
         if ($envKey) {
             $envValue = getenv($envKey);
-            if ($envValue !== false && $envValue !== '') {
+
+            // `api_version` treats an explicit empty string as a meaningful
+            // override (the legacy, unversioned API base), so it must not
+            // be conflated with "unset" the way other keys are.
+            if ($envValue !== false && ($envValue !== '' || $key === 'api_version')) {
                 return $envValue;
             }
         }
