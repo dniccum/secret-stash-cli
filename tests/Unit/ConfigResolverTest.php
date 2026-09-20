@@ -27,6 +27,18 @@ it('falls back to default values when no env or .env is set', function () {
     expect(ConfigResolver::get('api_url'))->toBe('https://secretstash.cloud');
 });
 
+it('defaults the api version to v1', function () {
+    expect(ConfigResolver::get('api_version'))->toBe('v1');
+});
+
+it('resolves the api version from an environment variable', function () {
+    putenv('SECRET_STASH_API_VERSION=v2');
+
+    expect(ConfigResolver::get('api_version'))->toBe('v2');
+
+    putenv('SECRET_STASH_API_VERSION');
+});
+
 it('returns provided default when no value is found', function () {
     expect(ConfigResolver::get('nonexistent_key', 'fallback'))->toBe('fallback');
 });

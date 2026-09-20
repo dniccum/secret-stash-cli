@@ -127,6 +127,38 @@ php artisan secret-stash:push    # Push local changes
 
 ---
 
+## 🤖 Agent Vault SDK
+
+`SecretStashClient` talks to the versioned `/api/v1/...` REST API by default, and exposes the Agent Vault surface for connecting AI agents (Claude Code, Cursor, Codex, etc.) to your secrets:
+
+```php
+use Dniccum\SecretStash\Enums\AgentType;
+use Dniccum\SecretStash\SecretStashClient;
+
+$client = new SecretStashClient($apiUrl, $apiToken);
+
+// Create an agent. The response includes a one-time plaintext API token.
+$agent = $client->createAgent(AgentType::ClaudeCode, 'CI Bot', 'Used in CI pipelines');
+
+// Authorize which environments the agent may access.
+$client->syncAgentEnvironments($agent['data']['id'], [$environmentId]);
+
+// Provision the agent's sealed data encryption key for an environment.
+$client->provisionAgentEnvironmentDek($agent['data']['id'], $environmentId, $sealedDek);
+
+// Resolve secrets scoped to the agent's authorized environments.
+$secrets = $client->resolveAgentSecrets($agent['data']['id'], ['DB_PASSWORD'], $environmentId);
+
+// Verify the agent's connection end-to-end.
+$client->testAgent($agent['data']['id']);
+```
+
+Other available methods: `getAgents()`, `getAgent($agentId)`, `updateAgent($agentId, $attributes)`, `deleteAgent($agentId)`, `getAgentSecrets($agentId)`, and `getAgentSecret($agentId, $secretId)`.
+
+The API version can be overridden via the `SECRET_STASH_API_VERSION` environment variable (or the `api_version` config value), and set to an empty string to target a legacy, self-hosted instance that only serves the unversioned `/api/...` routes.
+
+---
+
 ## 🧪 Import Existing Projects
 
 Already have a `.env` file?

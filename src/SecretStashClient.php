@@ -2,6 +2,7 @@
 
 namespace Dniccum\SecretStash;
 
+use Dniccum\SecretStash\Enums\AgentType;
 use Dniccum\SecretStash\Exceptions\ApiToken\InvalidApiToken;
 use Dniccum\SecretStash\Exceptions\ApiToken\MissingApiToken;
 use Dniccum\SecretStash\Exceptions\InvalidEnvironmentConfiguration;
@@ -19,17 +20,20 @@ class SecretStashClient
 
     protected ?string $encryptionKey = null;
 
+    protected string $apiVersion;
+
     protected ?Client $httpClient = null;
 
     /**
      * @throws InvalidEnvironmentConfiguration
      * @throws \Throwable
      */
-    public function __construct(?string $apiUrl = null, ?string $apiToken = null, ?string $encryptionKey = null)
+    public function __construct(?string $apiUrl = null, ?string $apiToken = null, ?string $encryptionKey = null, ?string $apiVersion = null)
     {
         $this->apiUrl = $apiUrl ? rtrim($apiUrl, '/') : (ConfigResolver::get('api_url') ?? '');
         $this->apiToken = $apiToken ?? ConfigResolver::get('api_token');
         $this->encryptionKey = $encryptionKey;
+        $this->apiVersion = trim($apiVersion ?? ConfigResolver::get('api_version') ?? 'v1', '/');
 
         if (empty($this->apiUrl)) {
             throw new InvalidEnvironmentConfiguration('API url is not configured. Please set SECRET_STASH_API_URL in your .env file.');
@@ -50,8 +54,10 @@ class SecretStashClient
         }
 
         if ($this->httpClient === null) {
+            $basePath = $this->apiVersion !== '' ? "/api/{$this->apiVersion}/" : '/api/';
+
             $this->httpClient = new Client([
-                'base_uri' => rtrim($this->apiUrl, '/').'/api/',
+                'base_uri' => rtrim($this->apiUrl, '/').$basePath,
                 'headers' => [
                     'Authorization' => 'Bearer '.$this->apiToken,
                     'User-Agent' => 'SecretStash-CLI/1.0',
@@ -103,6 +109,44 @@ class SecretStashClient
         try {
             $response = $this->buildClient()->post($endpoint, [
                 'json' => $data,
+            ]);
+
+            $body = $response->getBody()->getContents();
+            $decoded = json_decode($body, true);
+
+            return is_array($decoded) ? $decoded : [];
+        } catch (\Throwable $e) {
+            $this->handleException($e);
+        }
+    }
+
+    /**
+     * Make a PUT request to the API.
+     */
+    public function put(string $endpoint, array $data = []): array
+    {
+        try {
+            $response = $this->buildClient()->put($endpoint, [
+                'json' => $data,
+            ]);
+
+            $body = $response->getBody()->getContents();
+            $decoded = json_decode($body, true);
+
+            return is_array($decoded) ? $decoded : [];
+        } catch (\Throwable $e) {
+            $this->handleException($e);
+        }
+    }
+
+    /**
+     * Make a DELETE request to the API.
+     */
+    public function delete(string $endpoint, array $query = []): array
+    {
+        try {
+            $response = $this->buildClient()->delete($endpoint, [
+                'query' => $query,
             ]);
 
             $body = $response->getBody()->getContents();
@@ -302,5 +346,121 @@ class SecretStashClient
         return $this->post("applications/{$applicationId}/environments/{$environmentSlug}/envelopes", [
             'envelopes' => $envelopes,
         ]);
+    }
+
+    /**
+     * Get all Agent Vault agents for the current user.
+     */
+    public function getAgents(): array
+    {
+        return $this->get('agents');
+    }
+
+    /**
+     * Get a single Agent Vault agent.
+     */
+    public function getAgent(string $agentId): array
+    {
+        return $this->get("agents/{$agentId}");
+    }
+
+    /**
+     * Create a new Agent Vault agent. The response includes the agent's
+     * one-time plaintext API token, which is never returned again.
+     */
+    public function createAgent(AgentType|string $type, string $name, ?string $description = null): array
+    {
+        $data = [
+            'name' => $name,
+            'type' => $type instanceof AgentType ? $type->value : $type,
+        ];
+
+        if ($description !== null) {
+            $data['description'] = $description;
+        }
+
+        return $this->post('agents', $data);
+    }
+
+    /**
+     * Update an existing Agent Vault agent.
+     */
+    public function updateAgent(string $agentId, array $attributes): array
+    {
+        return $this->put("agents/{$agentId}", $attributes);
+    }
+
+    /**
+     * Delete (revoke) an Agent Vault agent.
+     */
+    public function deleteAgent(string $agentId): array
+    {
+        return $this->delete("agents/{$agentId}");
+    }
+
+    /**
+     * Sync the set of environments an agent is authorized to access.
+     *
+     * @param  array<int, string>  $environmentIds
+     */
+    public function syncAgentEnvironments(string $agentId, array $environmentIds): array
+    {
+        return $this->put("agents/{$agentId}/environments", [
+            'environments' => $environmentIds,
+        ]);
+    }
+
+    /**
+     * Provision (seal and store) a data encryption key for an agent/environment pair.
+     */
+    public function provisionAgentEnvironmentDek(string $agentId, string $environmentId, string $sealedDek): array
+    {
+        return $this->post("agents/{$agentId}/environments/{$environmentId}/dek", [
+            'sealed_dek' => $sealedDek,
+        ]);
+    }
+
+    /**
+     * Get metadata for all secrets an agent is authorized to resolve.
+     */
+    public function getAgentSecrets(string $agentId, ?string $environmentId = null): array
+    {
+        $query = $environmentId !== null ? ['environment' => $environmentId] : [];
+
+        return $this->get("agents/{$agentId}/secrets", $query);
+    }
+
+    /**
+     * Get metadata for a single secret an agent is authorized to resolve.
+     */
+    public function getAgentSecret(string $agentId, string $secretId): array
+    {
+        return $this->get("agents/{$agentId}/secrets/{$secretId}");
+    }
+
+    /**
+     * Batch resolve decrypted secret values for an agent, scoped to its
+     * authorized environments.
+     *
+     * @param  array<int, string>  $variables
+     */
+    public function resolveAgentSecrets(string $agentId, array $variables, ?string $environmentId = null): array
+    {
+        $data = ['variables' => $variables];
+
+        if ($environmentId !== null) {
+            $data['environment'] = $environmentId;
+        }
+
+        return $this->post("agents/{$agentId}/secrets/resolve", $data);
+    }
+
+    /**
+     * Run the connection verification protocol for an agent (token validity,
+     * DEK unseal/decrypt, and a live secret resolve round-trip).
+     */
+    public function testAgent(string $agentId): array
+    {
+        return $this->post("agents/{$agentId}/test");
     }
 }
