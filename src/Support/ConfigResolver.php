@@ -19,6 +19,7 @@ class ConfigResolver
     protected static array $envMap = [
         'api_token' => 'SECRET_STASH_API_TOKEN',
         'api_url' => 'SECRET_STASH_API_URL',
+        'api_version' => 'SECRET_STASH_API_VERSION',
         'application_id' => 'SECRET_STASH_APPLICATION_ID',
         'key_dir' => 'SECRET_STASH_KEY_DIR',
         'app_env' => 'APP_ENV',
@@ -29,6 +30,7 @@ class ConfigResolver
      */
     protected static array $defaults = [
         'api_url' => 'https://secretstash.cloud',
+        'api_version' => 'v1',
         'ignored_variables' => ['APP_KEY', 'APP_ENV'],
     ];
 
@@ -48,7 +50,11 @@ class ConfigResolver
         $envKey = static::$envMap[$key] ?? null;
         if ($envKey) {
             $envValue = getenv($envKey);
-            if ($envValue !== false && $envValue !== '') {
+
+            // `api_version` treats an explicit empty string as a meaningful
+            // override (the legacy, unversioned API base), so it must not
+            // be conflated with "unset" the way other keys are.
+            if ($envValue !== false && ($envValue !== '' || $key === 'api_version')) {
                 return $envValue;
             }
         }

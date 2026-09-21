@@ -52,6 +52,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | SecretStash API Version
+    |--------------------------------------------------------------------------
+    |
+    | The versioned API segment requests are routed through, e.g. "v1" for
+    | requests to `/api/v1/...`. Set to an empty string to target a legacy,
+    | self-hosted instance that only serves the unversioned `/api/...` routes.
+    |
+    */
+    'api_version' => env('SECRET_STASH_API_VERSION', 'v1'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Custom Key Directory
     |--------------------------------------------------------------------------
     |
