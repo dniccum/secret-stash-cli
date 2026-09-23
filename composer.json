@@ -24,7 +24,7 @@
     "require": {
         "php": "^8.2",
         "endroid/qr-code": "^5.0.9",
-        "guzzlehttp/guzzle": "^7.10",
+        "guzzlehttp/guzzle": "^8.2",
         "illuminate/collections": "^11.0|^12.0|^13.0",
         "illuminate/console": "^11.0|^12.0|^13.0",
         "illuminate/contracts": "^11.0|^12.0|^13.0",
