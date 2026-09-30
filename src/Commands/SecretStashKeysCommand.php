@@ -424,6 +424,10 @@ class SecretStashKeysCommand extends BasicCommand
     {
         $default = $this->option('label') ?? (gethostname() ?: 'My Device');
 
+        if ($this->option('force')) {
+            return $default;
+        }
+
         return text(
             label: 'Device label',
             placeholder: $default,

@@ -125,6 +125,16 @@ php artisan secret-stash:pull    # Pull environment variables
 php artisan secret-stash:push    # Push local changes
 ```
 
+### Skipping confirmation prompts
+
+The `login`, `install`, `variables` (push), `keys` and `envelope` commands accept a `--force` flag that skips confirmation prompts and answers them with "yes", which is useful in CI/CD and scripts:
+
+```bash
+php artisan secret-stash:variables push --force
+```
+
+> **Warning:** `--force` can be destructive. It overwrites an existing API token (`login`), regenerates device and recovery keys (`keys`, `install`), and resets the environment key when a rewrap fails (`envelope`).
+
 ---
 
 ## 🧪 Import Existing Projects

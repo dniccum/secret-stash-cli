@@ -32,3 +32,12 @@ it('prompts for environment if not set', function () {
         ->expectsOutputToContain('SecretStash has been successfully initialized!')
         ->assertSuccessful();
 });
+
+it('skips the config publishing confirmation with --force', function () {
+    Config::set('secret-stash.application_id', 'app-123');
+    Config::set('app.env', 'testing');
+
+    $this->artisan('secret-stash:install', ['--force' => true])
+        ->expectsOutputToContain('SecretStash has been successfully initialized!')
+        ->assertSuccessful();
+});

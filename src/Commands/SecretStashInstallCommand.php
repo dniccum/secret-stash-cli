@@ -47,6 +47,7 @@ class SecretStashInstallCommand extends BasicCommand
 
         $this->call('secret-stash:keys', [
             'action' => 'init',
+            '--force' => (bool) $this->option('force'),
         ]);
 
         info('SecretStash has been successfully initialized!');
