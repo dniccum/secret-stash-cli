@@ -127,6 +127,22 @@ php artisan secret-stash:push    # Push local changes
 
 ---
 
+## 🤖 Agent Vault (API v1)
+
+`SecretStashClient` can call the versioned `/api/v1/...` Agent Vault endpoints. Existing endpoints remain unversioned.
+
+```php
+$client = new SecretStashClient();
+
+$agent = $client->createAgent('ci-bot');           // response includes the one-time API token
+$client->syncAgentEnvironments($agentId, [$environmentId]);
+$client->provisionAgentDek($agentId, $environmentId);
+$secrets = $client->resolveAgentSecrets($agentId, ['DB_PASSWORD']);
+$client->testAgent($agentId);
+```
+
+Also available: `getAgents`, `getAgent`, `updateAgent`, `deleteAgent`, `getAgentEnvironments`, `getAgentSecrets`, `getAgentSecret`, plus generic `put`, `patch`, `delete` and `versioned()` helpers.
+
 ## 🧪 Import Existing Projects
 
 Already have a `.env` file?

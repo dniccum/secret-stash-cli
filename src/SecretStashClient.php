@@ -13,6 +13,11 @@ use GuzzleHttp\Exception\RequestException;
 
 class SecretStashClient
 {
+    /**
+     * The versioned REST API prefix used by the Agent Vault endpoints.
+     */
+    public const API_VERSION = 'v1';
+
     protected string $apiUrl;
 
     protected ?string $apiToken;
@@ -81,18 +86,7 @@ class SecretStashClient
      */
     public function get(string $endpoint, array $query = []): array
     {
-        try {
-            $response = $this->buildClient()->get($endpoint, [
-                'query' => $query,
-            ]);
-
-            $body = $response->getBody()->getContents();
-            $decoded = json_decode($body, true);
-
-            return is_array($decoded) ? $decoded : [];
-        } catch (\Throwable $e) {
-            $this->handleException($e);
-        }
+        return $this->request('GET', $endpoint, ['query' => $query]);
     }
 
     /**
@@ -100,10 +94,48 @@ class SecretStashClient
      */
     public function post(string $endpoint, array $data = []): array
     {
+        return $this->request('POST', $endpoint, ['json' => $data]);
+    }
+
+    /**
+     * Make a PUT request to the API.
+     */
+    public function put(string $endpoint, array $data = []): array
+    {
+        return $this->request('PUT', $endpoint, ['json' => $data]);
+    }
+
+    /**
+     * Make a PATCH request to the API.
+     */
+    public function patch(string $endpoint, array $data = []): array
+    {
+        return $this->request('PATCH', $endpoint, ['json' => $data]);
+    }
+
+    /**
+     * Make a DELETE request to the API.
+     */
+    public function delete(string $endpoint): array
+    {
+        return $this->request('DELETE', $endpoint);
+    }
+
+    /**
+     * Prefix an endpoint with the versioned API path (e.g. "v1/agents").
+     */
+    public function versioned(string $endpoint, string $version = self::API_VERSION): string
+    {
+        return trim($version, '/').'/'.ltrim($endpoint, '/');
+    }
+
+    /**
+     * Send a request and decode the JSON response.
+     */
+    protected function request(string $method, string $endpoint, array $options = []): array
+    {
         try {
-            $response = $this->buildClient()->post($endpoint, [
-                'json' => $data,
-            ]);
+            $response = $this->buildClient()->request($method, $endpoint, $options);
 
             $body = $response->getBody()->getContents();
             $decoded = json_decode($body, true);
@@ -302,5 +334,113 @@ class SecretStashClient
         return $this->post("applications/{$applicationId}/environments/{$environmentSlug}/envelopes", [
             'envelopes' => $envelopes,
         ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Agent Vault (v1)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * List agents.
+     */
+    public function getAgents(): array
+    {
+        return $this->get($this->versioned('agents'));
+    }
+
+    /**
+     * Get a single agent.
+     */
+    public function getAgent(string $agentId): array
+    {
+        return $this->get($this->versioned("agents/{$agentId}"));
+    }
+
+    /**
+     * Create an agent. The response contains the one-time API token.
+     */
+    public function createAgent(string $name, array $attributes = []): array
+    {
+        return $this->post($this->versioned('agents'), ['name' => $name] + $attributes);
+    }
+
+    /**
+     * Update an agent.
+     */
+    public function updateAgent(string $agentId, array $attributes): array
+    {
+        return $this->put($this->versioned("agents/{$agentId}"), $attributes);
+    }
+
+    /**
+     * Delete an agent.
+     */
+    public function deleteAgent(string $agentId): array
+    {
+        return $this->delete($this->versioned("agents/{$agentId}"));
+    }
+
+    /**
+     * Get the environments an agent has access to.
+     */
+    public function getAgentEnvironments(string $agentId): array
+    {
+        return $this->get($this->versioned("agents/{$agentId}/environments"));
+    }
+
+    /**
+     * Sync the environments an agent has access to.
+     *
+     * @param  array  $environmentIds  Environment IDs the agent should be scoped to
+     */
+    public function syncAgentEnvironments(string $agentId, array $environmentIds): array
+    {
+        return $this->put($this->versioned("agents/{$agentId}/environments"), [
+            'environments' => array_values($environmentIds),
+        ]);
+    }
+
+    /**
+     * Provision the data encryption key (DEK) for an agent/environment pair.
+     */
+    public function provisionAgentDek(string $agentId, string $environmentId, array $data = []): array
+    {
+        return $this->post($this->versioned("agents/{$agentId}/environments/{$environmentId}/dek"), $data);
+    }
+
+    /**
+     * List the secrets available to an agent.
+     */
+    public function getAgentSecrets(string $agentId, array $query = []): array
+    {
+        return $this->get($this->versioned("agents/{$agentId}/secrets"), $query);
+    }
+
+    /**
+     * Get a single secret available to an agent.
+     */
+    public function getAgentSecret(string $agentId, string $secret, array $query = []): array
+    {
+        return $this->get($this->versioned("agents/{$agentId}/secrets/".rawurlencode($secret)), $query);
+    }
+
+    /**
+     * Resolve a batch of secrets for an agent.
+     *
+     * @param  array  $secrets  Secret names/references to resolve
+     */
+    public function resolveAgentSecrets(string $agentId, array $secrets, array $options = []): array
+    {
+        return $this->post($this->versioned("agents/{$agentId}/secrets"), ['secrets' => array_values($secrets)] + $options);
+    }
+
+    /**
+     * Verify that an agent's connection and credentials work.
+     */
+    public function testAgent(string $agentId): array
+    {
+        return $this->post($this->versioned("agents/{$agentId}/test"));
     }
 }
