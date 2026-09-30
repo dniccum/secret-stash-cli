@@ -15,7 +15,8 @@ use function Laravel\Prompts\warning;
 class SecretStashLoginCommand extends BasicCommand
 {
     protected $signature = 'secret-stash:login
-        {--no-browser : Do not attempt to open the browser automatically}';
+        {--no-browser : Do not attempt to open the browser automatically}
+        {--force : Skip confirmation prompts}';
 
     protected $description = 'Authenticate with SecretStash and store an API token locally';
 
@@ -27,7 +28,8 @@ class SecretStashLoginCommand extends BasicCommand
 
         $existingToken = ConfigResolver::get('api_token');
         if ($existingToken) {
-            $overwrite = confirm('An API token is already configured. Do you want to generate a new one?', false);
+            $overwrite = $this->option('force')
+                || confirm('An API token is already configured. Do you want to generate a new one?', false);
             if (! $overwrite) {
                 info('Login cancelled.');
 
