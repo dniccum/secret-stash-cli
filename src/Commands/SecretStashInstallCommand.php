@@ -5,7 +5,6 @@ namespace Dniccum\SecretStash\Commands;
 use Dniccum\SecretStash\Support\ConfigResolver;
 
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 
 class SecretStashInstallCommand extends BasicCommand
@@ -34,14 +33,6 @@ class SecretStashInstallCommand extends BasicCommand
                     '--tag' => 'secret-stash-config',
                 ]);
             }
-        }
-
-        try {
-            $this->setEnvironment();
-        } catch (\Throwable $e) {
-            error('Error: '.$e->getMessage());
-
-            return self::FAILURE;
         }
 
         $this->call('secret-stash:keys', [

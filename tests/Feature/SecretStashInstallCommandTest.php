@@ -22,13 +22,12 @@ it('can run the secret-stash:install command and skip config publishing', functi
         ->assertSuccessful();
 });
 
-it('prompts for environment if not set', function () {
-    Config::set('secret-stash.application_id', 'app-123');
+it('does not require an application ID or environment to install', function () {
+    Config::set('secret-stash.application_id', null);
     Config::set('app.env', null);
 
     $this->artisan('secret-stash:install')
         ->expectsConfirmation('Would you like to publish the SecretStash config file?', 'no')
-        ->expectsQuestion('The environment that you would like to interact with', 'staging')
         ->expectsOutputToContain('SecretStash has been successfully initialized!')
         ->assertSuccessful();
 });
