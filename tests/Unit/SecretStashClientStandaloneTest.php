@@ -59,8 +59,7 @@ it('returns empty array for non-JSON response body', function () {
 
 it('throws InvalidApiToken for 401 in standalone mode', function () {
     $mockClient = createStandaloneMockClient([
-        new RequestException(
-            'Unauthorized',
+        RequestException::create(
             new Request('GET', 'applications'),
             new Response(401, [], json_encode(['message' => 'Unauthenticated.']))
         ),

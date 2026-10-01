@@ -20,8 +20,7 @@ function createMockClient(array $responses): Client
 
 it('returns the API message from a JSON error response', function () {
     $mockClient = createMockClient([
-        new RequestException(
-            'Client error',
+        RequestException::create(
             new Request('GET', 'applications'),
             new Response(404, [], json_encode(['message' => 'The "local" environment does not exist for this application.']))
         ),
@@ -36,8 +35,7 @@ it('returns the API message from a JSON error response', function () {
 
 it('falls back to status code when JSON has no message key', function () {
     $mockClient = createMockClient([
-        new RequestException(
-            'Client error',
+        RequestException::create(
             new Request('GET', 'applications'),
             new Response(422, [], json_encode(['error' => 'something went wrong']))
         ),
@@ -52,8 +50,7 @@ it('falls back to status code when JSON has no message key', function () {
 
 it('falls back to status code when response body is not JSON', function () {
     $mockClient = createMockClient([
-        new RequestException(
-            'Server error',
+        RequestException::create(
             new Request('GET', 'applications'),
             new Response(500, [], 'Internal Server Error')
         ),
@@ -68,8 +65,7 @@ it('falls back to status code when response body is not JSON', function () {
 
 it('throws InvalidApiToken for 401 responses', function () {
     $mockClient = createMockClient([
-        new RequestException(
-            'Unauthorized',
+        RequestException::create(
             new Request('GET', 'applications'),
             new Response(401, [], json_encode(['message' => 'Unauthenticated.']))
         ),
@@ -84,8 +80,7 @@ it('throws InvalidApiToken for 401 responses', function () {
 
 it('throws RuntimeException with API message for 403 responses', function () {
     $mockClient = createMockClient([
-        new RequestException(
-            'Forbidden',
+        RequestException::create(
             new Request('GET', 'applications'),
             new Response(403, [], json_encode(['message' => 'Forbidden.']))
         ),
@@ -115,8 +110,7 @@ it('shows a friendly message for connection failures', function () {
 
 it('preserves the original exception in the chain', function () {
     $mockClient = createMockClient([
-        new RequestException(
-            'Not Found',
+        RequestException::create(
             new Request('GET', 'applications'),
             new Response(404, [], json_encode(['message' => 'Not Found.']))
         ),
