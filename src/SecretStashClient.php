@@ -10,6 +10,7 @@ use Dniccum\SecretStash\Support\VariableUtility;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Http\Message\ResponseInterface;
 
 class SecretStashClient
 {
@@ -147,12 +148,29 @@ class SecretStashClient
     }
 
     /**
+     * Get the response attached to an exception, if any.
+     *
+     * Guzzle 7 exposes getResponse() on RequestException (nullable), while Guzzle 8
+     * moved it to ResponseException and removed hasResponse(). This supports both.
+     */
+    protected function getResponseFromException(\Throwable $e): ?ResponseInterface
+    {
+        if ($e instanceof RequestException && method_exists($e, 'getResponse')) {
+            return $e->getResponse();
+        }
+
+        return null;
+    }
+
+    /**
      * Handle API exceptions.
      */
     protected function handleException(\Throwable $e): never
     {
-        if ($e instanceof RequestException && $e->hasResponse()) {
-            $statusCode = $e->getResponse()->getStatusCode();
+        $response = $this->getResponseFromException($e);
+
+        if ($response !== null) {
+            $statusCode = $response->getStatusCode();
 
             if ($statusCode === 401) {
                 throw new InvalidApiToken(
@@ -174,9 +192,11 @@ class SecretStashClient
             return 'Unable to connect to the SecretStash API. Please check your network connection and API URL configuration.';
         }
 
-        if ($e instanceof RequestException && $e->hasResponse()) {
-            $statusCode = $e->getResponse()->getStatusCode();
-            $body = $e->getResponse()->getBody()->getContents();
+        $response = $this->getResponseFromException($e);
+
+        if ($response !== null) {
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
             $decoded = json_decode($body, true);
 
             if (is_array($decoded) && isset($decoded['message']) && is_string($decoded['message'])) {
