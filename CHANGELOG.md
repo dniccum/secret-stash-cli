@@ -2,6 +2,19 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## Version 1.1.0 - 2026-10-01
+
+### What's Changed
+
+* feat: Add login command for CLI device-code auth flow [SEC-23] by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/44
+* Bump actions/checkout from 6 to 7 by @dependabot[bot] in https://github.com/dniccum/secret-stash-cli/pull/45
+* PHP SDK: support versioned /v1/ API + Agent Vault endpoints (SEC-46) by @dniccum in https://github.com/dniccum/secret-stash-cli/pull/51
+* Add --force flag to skip confirmation prompts (SEC2-10) by @dniccum in https://github.com/dniccum/secret-stash-cli/pull/53
+* Fix install command requiring application ID (SEC2-12) by @dniccum in https://github.com/dniccum/secret-stash-cli/pull/52
+* Support Guzzle 7 and 8 by @dniccum in https://github.com/dniccum/secret-stash-cli/pull/54
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v1.0.2...v1.1.0
+
 ## v1.0.2 - 2026-06-16
 
 ### What's Changed
