@@ -26,7 +26,8 @@ class SecretStashVariablesCommand extends BasicCommand
                             {action? : The action to perform (list, pull, push)}
                             {--application= : The unique application ID that identifies your application within SecretStash}
                             {--environment= : Environment slug (defaults to APP_ENV value in .env file if set, otherwise prompts user to select an environment)}
-                            {--file= : .env file path for pull/push actions}';
+                            {--file= : .env file path for pull/push actions}
+                            {--force : Skip confirmation prompts}';
 
     protected $aliases = [
         'secret-stash:var',
@@ -211,7 +212,7 @@ class SecretStashVariablesCommand extends BasicCommand
             return self::FAILURE;
         }
 
-        $confirmed = confirm(
+        $confirmed = $this->option('force') || confirm(
             label: 'Push '.count($variables).' variable(s) to your SecretStash application?',
             default: true
         );
@@ -290,7 +291,7 @@ class SecretStashVariablesCommand extends BasicCommand
 
     protected function createEnvironment(): bool
     {
-        $confirmCreate = confirm(
+        $confirmCreate = $this->option('force') || confirm(
             label: 'This environment does not exist. Would you like to create this environment now?',
             default: true
         );

@@ -13,7 +13,8 @@ class SecretStashInstallCommand extends BasicCommand
     /**
      * @var string
      */
-    protected $signature = 'secret-stash:install';
+    protected $signature = 'secret-stash:install
+                            {--force : Skip confirmation prompts}';
 
     /**
      * @var string
@@ -27,7 +28,7 @@ class SecretStashInstallCommand extends BasicCommand
     {
         // Config publishing is only available in Laravel
         if (ConfigResolver::isLaravel()) {
-            if (confirm(
+            if ($this->option('force') || confirm(
                 label: 'Would you like to publish the SecretStash config file?',
             )) {
                 $this->call('vendor:publish', [
@@ -46,6 +47,7 @@ class SecretStashInstallCommand extends BasicCommand
 
         $this->call('secret-stash:keys', [
             'action' => 'init',
+            '--force' => (bool) $this->option('force'),
         ]);
 
         info('SecretStash has been successfully initialized!');
