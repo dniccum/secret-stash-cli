@@ -2,6 +2,14 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## Version 1.1.1 - 2026-10-12
+
+### What's Changed
+
+* Repair missing envelopes for your other devices after unlocking by @dniccum in https://github.com/dniccum/secret-stash-cli/pull/55
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v1.1.0...v1.1.1
+
 ## Version 1.1.0 - 2026-10-01
 
 ### What's Changed
