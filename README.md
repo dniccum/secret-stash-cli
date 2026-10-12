@@ -99,6 +99,8 @@ SecretStash uses **zero-knowledge encryption**:
 
 This ensures a secure, consistent workflow from local development to production.
 
+Whenever `secret-stash:variables` unlocks an environment, it also wraps the environment key for any of your other devices (such as a browser) that are missing access to it, so they can unlock it the next time they load.
+
 ---
 
 ## 💡 Common Use Cases
