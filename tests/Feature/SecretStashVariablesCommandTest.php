@@ -154,6 +154,93 @@ it('pulls and writes decrypted values into .env', function () {
     unlink($tempEnv);
 })->group('variables');
 
+it('repairs envelopes for the user\'s other devices that are missing one', function () {
+    $dek = CryptoHelper::generateKey();
+    $browser = CryptoHelper::generateRSAKeyPair();
+    $teammate = CryptoHelper::generateRSAKeyPair();
+    $stored = null;
+
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek, $browser, $teammate, &$stored) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'production', 'id' => 'env_123', 'name' => 'Production', 'type' => 'production']]]);
+
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->once()
+            ->with('app_123', 'production', 123)
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->meta['public_key'])]]);
+
+        $mock->shouldReceive('getUserKeys')
+            ->once()
+            ->andReturn(['data' => [
+                ['id' => 123, 'public_key' => $this->meta['public_key']],
+                ['id' => 456, 'public_key' => $browser->public_key],
+                ['id' => 789, 'public_key' => $browser->public_key],
+            ]]);
+
+        $mock->shouldReceive('getEnvironmentEnvelopes')
+            ->once()
+            ->with('app_123', 'production')
+            ->andReturn(['data' => ['device_keys' => [
+                ['device_key_id' => 123, 'public_key' => $this->meta['public_key'], 'has_envelope' => true],
+                ['device_key_id' => 456, 'public_key' => $browser->public_key, 'has_envelope' => false],
+                ['device_key_id' => 789, 'public_key' => $browser->public_key, 'has_envelope' => true],
+                ['device_key_id' => 999, 'public_key' => $teammate->public_key, 'has_envelope' => false],
+            ]]]);
+
+        $mock->shouldReceive('storeBulkEnvironmentEnvelopes')
+            ->once()
+            ->withArgs(function ($applicationId, $environment, $envelopes) use (&$stored) {
+                $stored = $envelopes;
+
+                return $applicationId === 'app_123' && $environment === 'production';
+            })
+            ->andReturn(['data' => ['created' => 1, 'updated' => 0, 'errors' => []]]);
+
+        $mock->shouldReceive('getVariables')
+            ->once()
+            ->andReturn(['data' => [
+                ['id' => 'var_1', 'name' => 'FOO', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('bar', $dek)],
+            ]]);
+    });
+
+    $this->artisan('secret-stash:variables list --environment=production')
+        ->expectsOutputToContain('Total: 1 variable(s)')
+        ->assertSuccessful();
+
+    expect($stored)->toHaveCount(1)
+        ->and($stored[0]['device_key_id'])->toBe(456)
+        ->and(CryptoHelper::openEnvelope($stored[0]['envelope'], $browser->private_key))->toBe($dek);
+})->group('variables');
+
+it('still lists variables when envelope repair fails', function () {
+    $dek = CryptoHelper::generateKey();
+
+    $this->mock(SecretStashClient::class, function ($mock) use ($dek) {
+        $mock->shouldReceive('getEnvironments')
+            ->once()
+            ->andReturn(['data' => [['slug' => 'testing', 'id' => 'env_123', 'name' => 'Testing', 'type' => 'testing']]]);
+
+        $mock->shouldReceive('getEnvironmentEnvelope')
+            ->once()
+            ->andReturn(['data' => ['envelope' => CryptoHelper::createEnvelope($dek, $this->meta['public_key'])]]);
+
+        $mock->shouldReceive('getUserKeys')
+            ->once()
+            ->andThrow(new RuntimeException('Network error'));
+
+        $mock->shouldReceive('getVariables')
+            ->once()
+            ->andReturn(['data' => [
+                ['id' => 'var_1', 'name' => 'FOO', 'created_at' => '2025-01-01 00:00:00', 'payload' => CryptoHelper::aesGcmEncrypt('bar', $dek)],
+            ]]);
+    });
+
+    $this->artisan('secret-stash:variables list --environment=testing')
+        ->expectsOutputToContain('Total: 1 variable(s)')
+        ->assertSuccessful();
+})->group('variables');
+
 it('correctly reads APP_ENV from .env file', function () {
     $tempEnv = tempnam(sys_get_temp_dir(), '.env');
     File::put($tempEnv, "APP_ENV=staging\n");

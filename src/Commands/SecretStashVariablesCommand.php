@@ -331,10 +331,14 @@ class SecretStashVariablesCommand extends BasicCommand
             $privateKey = $this->resolvePrivateKey($keysCommand);
 
             try {
-                return CryptoHelper::openEnvelope($envelope, $privateKey);
+                $dek = CryptoHelper::openEnvelope($envelope, $privateKey);
             } catch (\Throwable $e) {
                 throw new \RuntimeException('Unable to decrypt environment key. Verify your device key or run "secret-stash:envelope repair" if needed.');
             }
+
+            $this->repairMissingDeviceEnvelopes($environmentId, $deviceKeyId, $dek, $client);
+
+            return $dek;
         }
 
         // No envelope exists - first time setup for this environment
@@ -368,6 +372,48 @@ class SecretStashVariablesCommand extends BasicCommand
         } catch (\Exception $e) {
             error('Failed to create envelope: '.$e->getMessage());
             throw $e;
+        }
+    }
+
+    /**
+     * Wrap the environment key for any of the user's other devices (e.g. a
+     * browser) that are still missing an envelope, so they can unlock the
+     * environment without someone re-sharing access. Best-effort: a failure
+     * here must never block the command that needed the key.
+     */
+    protected function repairMissingDeviceEnvelopes(string $environmentId, int $deviceKeyId, string $dek, SecretStashClient $client): void
+    {
+        try {
+            $ownDeviceKeyIds = array_map(
+                fn (array $deviceKey) => (int) $deviceKey['id'],
+                $client->getUserKeys()['data'] ?? []
+            );
+
+            $deviceKeys = $client->getEnvironmentEnvelopes($this->applicationId, $environmentId)['data']['device_keys'] ?? [];
+
+            $envelopes = [];
+            foreach ($deviceKeys as $deviceKey) {
+                $id = (int) ($deviceKey['device_key_id'] ?? 0);
+
+                if ($id === $deviceKeyId || ! in_array($id, $ownDeviceKeyIds, true) || ($deviceKey['has_envelope'] ?? true)) {
+                    continue;
+                }
+
+                try {
+                    $envelopes[] = [
+                        'device_key_id' => $id,
+                        'envelope' => CryptoHelper::createEnvelope($dek, $deviceKey['public_key']),
+                    ];
+                } catch (\Throwable) {
+                    // Skip a malformed public key rather than abort repair for the rest.
+                }
+            }
+
+            if ($envelopes !== []) {
+                $client->storeBulkEnvironmentEnvelopes($this->applicationId, $environmentId, $envelopes);
+            }
+        } catch (\Throwable) {
+            // Repair is opportunistic; the next successful unlock will retry.
         }
     }
 }
