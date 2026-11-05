@@ -50,9 +50,21 @@ composer require dniccum/secret-stash-cli
 php artisan secret-stash:login
 ```
 
+This stores `SECRET_STASH_API_TOKEN` in your `.env` file. You can also create a token in SecretStash and add it yourself.
+
 ---
 
-### 3. Pull your environment variables
+### 3. Register this device
+
+```bash
+php artisan secret-stash:install
+```
+
+The installer requires an API token. If none is configured, it offers to run `secret-stash:login` for you.
+
+---
+
+### 4. Pull your environment variables
 
 ```bash
 php artisan secret-stash:pull
