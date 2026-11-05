@@ -16,7 +16,7 @@ Built for developers who want a simple, secure way to manage secrets without bre
 ## Requirements
 
 - PHP 8.2 or higher
-- Laravel 11 or higher
+- Laravel 12 or higher
 - A SecretStash API Key
 
 ---
