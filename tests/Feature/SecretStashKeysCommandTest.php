@@ -1,6 +1,7 @@
 <?php
 
 use Dniccum\SecretStash\SecretStashClient;
+use Illuminate\Support\Facades\Config;
 
 it('cancels initialization when keys exist locally', function () {
     $this->mock(SecretStashClient::class, function ($mock) {
@@ -37,4 +38,12 @@ it('shows guidance to register when no local device record exists', function () 
     $this->artisan('secret-stash:keys status')
         ->expectsOutputToContain('Run "secret-stash:keys init" to generate and register this device.')
         ->assertSuccessful();
+});
+
+it('shows a clean error instead of throwing when no API token is configured', function () {
+    Config::set('secret-stash.api_token', null);
+
+    $this->artisan('secret-stash:keys status')
+        ->expectsOutputToContain('API token is not configured. Please set SECRET_STASH_API_TOKEN in your .env file.')
+        ->assertFailed();
 });

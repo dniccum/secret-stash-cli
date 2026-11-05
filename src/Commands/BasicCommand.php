@@ -182,12 +182,18 @@ abstract class BasicCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // If running inside Laravel, use the parent (DI-enabled) execute
-        if (ConfigResolver::isLaravel()) {
-            return parent::execute($input, $output);
-        }
+        try {
+            // If running inside Laravel, use the parent (DI-enabled) execute
+            if (ConfigResolver::isLaravel()) {
+                return parent::execute($input, $output);
+            }
 
-        // Standalone mode: call handle() directly without dependency injection
-        return (int) $this->handle(); // @phpstan-ignore method.notFound
+            // Standalone mode: call handle() directly without dependency injection
+            return (int) $this->handle(); // @phpstan-ignore method.notFound
+        } catch (InvalidEnvironmentConfiguration $e) {
+            error('Error: '.$e->getMessage());
+
+            return self::FAILURE;
+        }
     }
 }
