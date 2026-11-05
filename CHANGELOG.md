@@ -2,6 +2,16 @@
 
 All notable changes to `secret-stash-cli` will be documented in this file.
 
+## Version 1.2.0 - 2026-11-05
+
+### What's Changed
+
+* Point Packagist listing at secretstash.cloud and broaden keywords by @dniccum in https://github.com/dniccum/secret-stash-cli/pull/56
+* Drop Laravel 11 support by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/60
+* SEC2-13: Guide install through login when no API token is configured by @devin-ai-integration[bot] in https://github.com/dniccum/secret-stash-cli/pull/59
+
+**Full Changelog**: https://github.com/dniccum/secret-stash-cli/compare/v1.1.1...v1.2.0
+
 ## Version 1.1.1 - 2026-10-12
 
 ### What's Changed
